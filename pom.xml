@@ -1,7 +1,3 @@
-<!-- ====================================================================== -->
-<!-- pom.xml (CORREGIDO)                                                    -->
-<!-- Reemplaza el contenido completo de tu pom.xml con esto.                -->
-<!-- ====================================================================== -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -13,20 +9,17 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- ========= CAMBIO CLAVE AQUÍ ========= -->
-        <!-- Le decimos a Maven que use Java 17 -->
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <!-- ===================================== -->
+        <!-- Mantenemos la propiedad de Java 17 como buena práctica -->
+        <maven.compiler.release>17</maven.compiler.release>
         <jakarta.servlet.api.version>6.0.0</jakarta.servlet.api.version>
         <jakarta.ws.rs.version>3.1.0</jakarta.ws.rs.version>
         <jakarta.persistence.version>3.1.0</jakarta.persistence.version>
         <jersey.version>3.1.5</jersey.version>
         <hibernate.version>6.4.4.Final</hibernate.version>
-        <postgresql.connector.version>42.7.3</postgresql.connector.version> <!-- Cambiado a PostgreSQL -->
+        <postgresql.connector.version>42.7.3</postgresql.connector.version>
         <apache.poi.version>5.2.5</apache.poi.version>
-        <opennlp.tools.version>2.3.2</opennlp.tools.version> <!-- Versión que requiere Java 17+ -->
-        <spring.security.crypto.version>6.2.4</spring.security.crypto.version> <!-- Versión que requiere Java 17+ -->
+        <opennlp.tools.version>2.3.2</opennlp.tools.version>
+        <spring.security.crypto.version>6.2.4</spring.security.crypto.version>
         <commons.logging.version>1.3.1</commons.logging.version>
         <jjwt.version>0.11.5</jjwt.version>
         <jakarta.servlet.jsp.jstl.version>3.0.0</jakarta.servlet.jsp.jstl.version>
@@ -34,12 +27,12 @@
     </properties>
 
     <dependencies>
+        <!-- Todas tus dependencias permanecen igual que en la versión anterior -->
         <dependency>
             <groupId>org.apache.opennlp</groupId>
             <artifactId>opennlp-tools</artifactId>
             <version>${opennlp.tools.version}</version>
         </dependency>
-    
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
@@ -71,7 +64,6 @@
             <artifactId>jersey-media-multipart</artifactId>
             <version>${jersey.version}</version>
         </dependency>
-
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
@@ -82,17 +74,12 @@
             <artifactId>hibernate-core</artifactId>
             <version>${hibernate.version}</version>
         </dependency>
-        
-        <!-- ========= CAMBIO CLAVE AQUÍ ========= -->
-        <!-- Usamos el conector de PostgreSQL en lugar del de MySQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.connector.version}</version>
             <scope>runtime</scope>
         </dependency>
-        <!-- ===================================== -->
-
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi</artifactId>
@@ -103,7 +90,6 @@
             <artifactId>poi-ooxml</artifactId>
             <version>${apache.poi.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-crypto</artifactId>
@@ -131,7 +117,6 @@
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
-
         <dependency>
             <groupId>jakarta.servlet.jsp.jstl</groupId>
             <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
@@ -142,7 +127,6 @@
             <artifactId>jakarta.servlet.jsp.jstl</artifactId>
             <version>${glassfish.jstl.version}</version>
         </dependency>
-        
     </dependencies>
 
     <build>
@@ -152,7 +136,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
-                <!-- La configuración de la versión ya está en las propiedades, no se necesita aquí -->
+                <!-- ========= CAMBIO CLAVE AQUÍ ========= -->
+                <!-- Configuración explícita para asegurar que el plugin use Java 17 -->
+                <configuration>
+                    <release>17</release>
+                </configuration>
+                <!-- ===================================== -->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
