@@ -2,6 +2,7 @@ package com.ia.mensajes.agentemensajesia.util;
 
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,42 +16,49 @@ public class JPAUtil {
                 if (factory == null) {
                     System.out.println("INICIANDO JPAUtil: Creando EntityManagerFactory...");
                     try {
+                        // Leer la URL de conexión completa de Render desde las variables de entorno
                         String dbUrlFromEnv = System.getenv("DB_URL");
-                        String dbUser = System.getenv("DB_USER");
-                        String dbPassword = System.getenv("DB_PASSWORD");
-
-                        if (dbUrlFromEnv == null || dbUser == null || dbPassword == null) {
-                            throw new IllegalStateException("Las variables de entorno de la base de datos (DB_URL, DB_USER, DB_PASSWORD) no están configuradas.");
-                        }
-
-                        // --- CORRECCIÓN DE ROBUSTEZ ---
-                        // Asegura que la URL tenga el prefijo jdbc: requerido por Java
-                        String finalDbUrl = dbUrlFromEnv;
-                        if (!finalDbUrl.startsWith("jdbc:")) {
-                            // Convierte la URL de Render (ej. postgresql://...) a formato JDBC (ej. jdbc:postgresql://...)
-                            finalDbUrl = "jdbc:" + finalDbUrl;
-                        }
-                        // ===================================
                         
-                        System.out.println("Intentando conectar a la base de datos con URL: " + finalDbUrl);
+                        if (dbUrlFromEnv == null || dbUrlFromEnv.trim().isEmpty()) {
+                             throw new IllegalStateException("La variable de entorno de la base de datos DB_URL no está configurada.");
+                        }
+
+                        // PARSEAR LA URL DE RENDER PARA OBTENER SUS PARTES
+                        URI dbUri = new URI(dbUrlFromEnv);
+
+                        String userInfo = dbUri.getUserInfo();
+                        if (userInfo == null || !userInfo.contains(":")) {
+                            throw new Exception("La URL de la BD en la variable de entorno no contiene 'usuario:contraseña'.");
+                        }
+                        
+                        String username = userInfo.substring(0, userInfo.indexOf(':'));
+                        String password = userInfo.substring(userInfo.indexOf(':') + 1);
+
+                        // CONSTRUIR LA URL JDBC EN EL FORMATO CORRECTO Y OFICIAL
+                        String jdbcUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
+
+                        // Render requiere SSL, así que lo añadimos si no está presente
+                        if (dbUri.getQuery() == null || !dbUri.getQuery().contains("sslmode")) {
+                           jdbcUrl += "?sslmode=require";
+                        } else {
+                           jdbcUrl += "?" + dbUri.getQuery();
+                        }
+                        
+                        System.out.println("URL JDBC construida: " + jdbcUrl);
+                        System.out.println("Usuario detectado: " + username);
 
                         Map<String, String> properties = new HashMap<>();
-                        properties.put("jakarta.persistence.jdbc.url", finalDbUrl);
-                        properties.put("jakarta.persistence.jdbc.user", dbUser);
-                        properties.put("jakarta.persistence.jdbc.password", dbPassword);
+                        properties.put("jakarta.persistence.jdbc.url", jdbcUrl);
+                        properties.put("jakarta.persistence.jdbc.user", username);
+                        properties.put("jakarta.persistence.jdbc.password", password);
                         
-                        // Estas propiedades se leen desde persistence.xml, pero las mantenemos aquí por si acaso
-                        properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
-                        properties.put("hibernate.hbm2ddl.auto", "update");
-
                         factory = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT_NAME, properties);
-                        System.out.println("¡Éxito! EntityManagerFactory creado y conectado a la base de datos.");
+                        System.out.println("¡ÉXITO! EntityManagerFactory creado y conectado a la base de datos.");
 
                     } catch (Exception e) {
                         System.err.println("--- ERROR CRÍTICO AL INICIALIZAR ENTITYMANAGERFACTORY ---");
                         e.printStackTrace();
-                        System.err.println("----------------------------------------------------------");
-                        throw new RuntimeException(e);
+                        throw new RuntimeException("Fallo al inicializar JPA", e);
                     }
                 }
             }
@@ -62,6 +70,7 @@ public class JPAUtil {
         if (factory != null && factory.isOpen()) {
             System.out.println("Cerrando EntityManagerFactory...");
             factory.close();
+            factory = null;
         }
     }
 }
