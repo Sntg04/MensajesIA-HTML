@@ -1,7 +1,3 @@
-<--! ================================================================== -->
-<--! Dockerfile (SOLUCIÓN FINAL - CONFIGURADO PARA JAVA 11)               -->
-<--! Reemplaza el contenido completo de tu Dockerfile con esto.           -->
-<--! ================================================================== -->
 # --- Fase 1: Construcción (Build Stage) ---
 # Usamos una imagen de Maven con Java 11 (openjdk-11)
 FROM maven:3.8-openjdk-11 AS build
@@ -18,7 +14,7 @@ RUN mvn dependency:go-offline
 # Copiamos el resto del código fuente del proyecto
 COPY src ./src
 
-# Empaquetamos la aplicación en un archivo .war. 
+# Empaquetamos la aplicación en un archivo .war.
 # El -DskipTests acelera la construcción en el pipeline de despliegue.
 RUN mvn clean package -DskipTests
 
@@ -26,9 +22,6 @@ RUN mvn clean package -DskipTests
 # --- Fase 2: Ejecución (Runtime Stage) ---
 # Usamos una imagen oficial de Tomcat que también usa Java 11 para mantener la consistencia
 FROM tomcat:10.1-jdk11-temurin
-
-# Mensaje de mantenimiento (opcional)
-LABEL maintainer="Tu Nombre <tu.email@example.com>"
 
 # Eliminamos la aplicación de bienvenida por defecto de Tomcat
 RUN rm -rf /usr/local/tomcat/webapps/*
