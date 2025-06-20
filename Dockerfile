@@ -1,5 +1,9 @@
+<--! ================================================================== -->
+<--! Dockerfile (SOLUCIÓN FINAL - CONFIGURADO PARA JAVA 11)               -->
+<--! Reemplaza el contenido completo de tu Dockerfile con esto.           -->
+<--! ================================================================== -->
 # --- Fase 1: Construcción (Build Stage) ---
-# Usamos una imagen de Maven con Java 11 para compilar el proyecto
+# Usamos una imagen de Maven con Java 11 (openjdk-11)
 FROM maven:3.8-openjdk-11 AS build
 
 # Establecemos el directorio de trabajo dentro del contenedor
@@ -20,18 +24,17 @@ RUN mvn clean package -DskipTests
 
 
 # --- Fase 2: Ejecución (Runtime Stage) ---
-# Usamos una imagen oficial de Tomcat que es ligera y está lista para producción
+# Usamos una imagen oficial de Tomcat que también usa Java 11 para mantener la consistencia
 FROM tomcat:10.1-jdk11-temurin
 
-# Mensaje de mantenimiento
+# Mensaje de mantenimiento (opcional)
 LABEL maintainer="Tu Nombre <tu.email@example.com>"
 
 # Eliminamos la aplicación de bienvenida por defecto de Tomcat
 RUN rm -rf /usr/local/tomcat/webapps/*
 
 # Copiamos el .war construido en la fase anterior al directorio webapps de Tomcat
-# **IMPORTANTE**: Lo renombramos a ROOT.war para que se despliegue en la raíz del servidor,
-# coincidiendo con la simplificación de rutas que hicimos.
+# Lo renombramos a ROOT.war para que se despliegue en la raíz del servidor.
 COPY --from=build /app/target/AgenteMensajesIA.war /usr/local/tomcat/webapps/ROOT.war
 
 # El puerto estándar de Tomcat es 8080. Render detectará y usará esto.
