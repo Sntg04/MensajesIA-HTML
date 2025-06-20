@@ -16,28 +16,33 @@ public class JPAUtil {
                 if (factory == null) {
                     System.out.println("INICIANDO JPAUtil: Creando EntityManagerFactory...");
                     try {
-                        // Leer la URL de conexión completa de Render desde las variables de entorno
                         String dbUrlFromEnv = System.getenv("DB_URL");
                         
                         if (dbUrlFromEnv == null || dbUrlFromEnv.trim().isEmpty()) {
-                             throw new IllegalStateException("La variable de entorno de la base de datos DB_URL no está configurada.");
+                             throw new IllegalStateException("La variable de entorno DB_URL no está configurada.");
                         }
 
-                        // PARSEAR LA URL DE RENDER PARA OBTENER SUS PARTES
                         URI dbUri = new URI(dbUrlFromEnv);
 
                         String userInfo = dbUri.getUserInfo();
                         if (userInfo == null || !userInfo.contains(":")) {
-                            throw new Exception("La URL de la BD en la variable de entorno no contiene 'usuario:contraseña'.");
+                            throw new Exception("La URL de la BD no contiene 'usuario:contraseña'.");
                         }
                         
                         String username = userInfo.substring(0, userInfo.indexOf(':'));
                         String password = userInfo.substring(userInfo.indexOf(':') + 1);
 
-                        // CONSTRUIR LA URL JDBC EN EL FORMATO CORRECTO Y OFICIAL
-                        String jdbcUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
+                        // --- ¡CORRECCIÓN CLAVE Y DEFINITIVA! ---
+                        // Si getPort() devuelve -1, usamos el puerto estándar de PostgreSQL: 5432
+                        int port = dbUri.getPort();
+                        if (port == -1) {
+                            System.out.println("Puerto no detectado en la URL, usando puerto por defecto 5432.");
+                            port = 5432; 
+                        }
+                        // ----------------------------------------
 
-                        // Render requiere SSL, así que lo añadimos si no está presente
+                        String jdbcUrl = "jdbc:postgresql://" + dbUri.getHost() + ":" + port + dbUri.getPath();
+
                         if (dbUri.getQuery() == null || !dbUri.getQuery().contains("sslmode")) {
                            jdbcUrl += "?sslmode=require";
                         } else {
