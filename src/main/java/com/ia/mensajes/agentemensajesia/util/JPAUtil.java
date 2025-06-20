@@ -13,28 +13,43 @@ public class JPAUtil {
         if (factory == null) {
             synchronized (JPAUtil.class) {
                 if (factory == null) {
+                    System.out.println("INICIANDO JPAUtil: Creando EntityManagerFactory...");
                     try {
-                        // Leer las credenciales de las variables de entorno de Render
-                        String dbUrl = System.getenv("DB_URL");
+                        String dbUrlFromEnv = System.getenv("DB_URL");
                         String dbUser = System.getenv("DB_USER");
                         String dbPassword = System.getenv("DB_PASSWORD");
 
-                        if (dbUrl == null || dbUser == null || dbPassword == null) {
+                        if (dbUrlFromEnv == null || dbUser == null || dbPassword == null) {
                             throw new IllegalStateException("Las variables de entorno de la base de datos (DB_URL, DB_USER, DB_PASSWORD) no están configuradas.");
                         }
 
+                        // --- CORRECCIÓN DE ROBUSTEZ ---
+                        // Asegura que la URL tenga el prefijo jdbc: requerido por Java
+                        String finalDbUrl = dbUrlFromEnv;
+                        if (!finalDbUrl.startsWith("jdbc:")) {
+                            // Convierte la URL de Render (ej. postgresql://...) a formato JDBC (ej. jdbc:postgresql://...)
+                            finalDbUrl = "jdbc:" + finalDbUrl;
+                        }
+                        // ===================================
+                        
+                        System.out.println("Intentando conectar a la base de datos con URL: " + finalDbUrl);
+
                         Map<String, String> properties = new HashMap<>();
-                        properties.put("jakarta.persistence.jdbc.url", dbUrl);
+                        properties.put("jakarta.persistence.jdbc.url", finalDbUrl);
                         properties.put("jakarta.persistence.jdbc.user", dbUser);
                         properties.put("jakarta.persistence.jdbc.password", dbPassword);
+                        
+                        // Estas propiedades se leen desde persistence.xml, pero las mantenemos aquí por si acaso
+                        properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+                        properties.put("hibernate.hbm2ddl.auto", "update");
 
-                        System.out.println("Creando EntityManagerFactory con configuración de Render...");
                         factory = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT_NAME, properties);
-                        System.out.println("EntityManagerFactory creado con éxito.");
+                        System.out.println("¡Éxito! EntityManagerFactory creado y conectado a la base de datos.");
 
                     } catch (Exception e) {
-                        System.err.println("Error crítico al inicializar EntityManagerFactory: " + e.getMessage());
+                        System.err.println("--- ERROR CRÍTICO AL INICIALIZAR ENTITYMANAGERFACTORY ---");
                         e.printStackTrace();
+                        System.err.println("----------------------------------------------------------");
                         throw new RuntimeException(e);
                     }
                 }
@@ -44,10 +59,9 @@ public class JPAUtil {
     }
 
     public static void shutdown() {
-        if (factory != null) {
+        if (factory != null && factory.isOpen()) {
             System.out.println("Cerrando EntityManagerFactory...");
             factory.close();
-            System.out.println("EntityManagerFactory cerrado.");
         }
     }
 }
