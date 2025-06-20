@@ -2,53 +2,61 @@
  * js/dashboard.js
  * Maneja la lógica del panel de control.
  */
-
-// Se ejecuta cuando el contenido del DOM está completamente cargado
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar si hay un token. Si no, redirigir al login.
-    const token = getToken();
+    console.log("Dashboard DOM cargado. Verificando autenticación...");
+    const token = localStorage.getItem('jwtToken');
     if (!token) {
+        console.error("No se encontró token. Redirigiendo a login.");
         window.location.href = 'index.html';
         return;
     }
 
-    // Personalizar el saludo y mostrar/ocultar elementos según el rol
     const username = localStorage.getItem('username');
     const userRole = localStorage.getItem('userRole');
 
-    document.getElementById('welcomeMessage').textContent = `Bienvenido, ${username}`;
-    document.getElementById('logoutButton').addEventListener('click', logout);
-    
-    // --- CORRECCIÓN DE RUTAS EN TODAS LAS LLAMADAS FETCH ---
-
-    // Si el usuario es admin, puede ver y gestionar usuarios.
-    if (userRole === 'admin') {
-        document.getElementById('adminSection').style.display = 'block';
-        cargarUsuarios();
+    if (document.getElementById('welcomeMessage')) {
+        document.getElementById('welcomeMessage').textContent = `Bienvenido, ${username}`;
+    }
+    if (document.getElementById('logoutButton')) {
+        document.getElementById('logoutButton').addEventListener('click', logout);
     }
     
-    // Cargar las estadísticas de mensajes para todos los roles
+    console.log(`Usuario: ${username}, Rol: ${userRole}`);
+
+    if (userRole === 'admin') {
+        console.log("Usuario es admin. Mostrando sección de administración.");
+        const adminSection = document.getElementById('adminSection');
+        if(adminSection) {
+            adminSection.style.display = 'block';
+            cargarUsuarios();
+        } else {
+            console.error("No se encontró el elemento #adminSection en el HTML.");
+        }
+    }
+    
     cargarEstadisticas();
 
-    // Configurar el formulario de subida de archivos
     const uploadForm = document.getElementById('uploadForm');
     if (uploadForm) {
         uploadForm.addEventListener('submit', handleFileUpload);
     }
 });
 
-/**
- * Carga la lista de usuarios desde la API. Solo para admins.
- */
 async function cargarUsuarios() {
+    console.log("Intentando cargar usuarios...");
     const userList = document.getElementById('userList');
     const errorMessage = document.getElementById('userError');
+    if (!userList || !errorMessage) {
+        console.error("Faltan elementos HTML #userList o #userError");
+        return;
+    }
+
     errorMessage.textContent = '';
-    userList.innerHTML = 'Cargando...';
+    userList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
 
     try {
-        const response = await fetch('/api/usuarios', { // URL Corregida
-            headers: { 'Authorization': `Bearer ${getToken()}` }
+        const response = await fetch('/api/usuarios', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
         });
 
         if (!response.ok) {
@@ -56,8 +64,14 @@ async function cargarUsuarios() {
         }
 
         const usuarios = await response.json();
-        userList.innerHTML = ''; // Limpiar el "Cargando..."
+        console.log("Usuarios recibidos:", usuarios);
+        userList.innerHTML = '';
         
+        if (usuarios.length === 0) {
+            userList.innerHTML = '<tr><td colspan="7">No se encontraron usuarios.</td></tr>';
+            return;
+        }
+
         usuarios.forEach(usuario => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -68,8 +82,8 @@ async function cargarUsuarios() {
                 <td>${usuario.activo ? 'Sí' : 'No'}</td>
                 <td>${new Date(usuario.fechaCreacion).toLocaleDateString()}</td>
                 <td>
-                    <button class="edit-btn" onclick="editarUsuario(${usuario.id})">Editar</button>
-                    <button class="delete-btn" onclick="desactivarUsuario(${usuario.id}, '${usuario.username}')">Desactivar</button>
+                    <button class="edit-btn" data-id="${usuario.id}">Editar</button>
+                    <button class="delete-btn" data-id="${usuario.id}" data-username="${usuario.username}">Desactivar</button>
                 </td>
             `;
             userList.appendChild(row);
@@ -82,16 +96,18 @@ async function cargarUsuarios() {
     }
 }
 
-/**
- * Carga las estadísticas de mensajes desde la API.
- */
 async function cargarEstadisticas() {
+    console.log("Intentando cargar estadísticas...");
     const statsContainer = document.getElementById('messageStats');
+    if(!statsContainer) {
+        console.error("Falta elemento HTML #messageStats");
+        return;
+    }
     statsContainer.textContent = 'Cargando estadísticas...';
 
     try {
-        const response = await fetch('/api/mensajes/stats', { // URL Corregida
-            headers: { 'Authorization': `Bearer ${getToken()}` }
+        const response = await fetch('/api/mensajes/stats', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
         });
 
         if (!response.ok) {
@@ -99,6 +115,7 @@ async function cargarEstadisticas() {
         }
 
         const estadisticas = await response.json();
+        console.log("Estadísticas recibidas:", estadisticas);
         statsContainer.innerHTML = `
             <p><strong>Total de Mensajes:</strong> ${estadisticas.totalMensajes}</p>
             <p><strong>Promedio de Confianza (SPAM):</strong> ${(estadisticas.confianzaPromedioSpam * 100).toFixed(2)}%</p>
@@ -110,72 +127,39 @@ async function cargarEstadisticas() {
     }
 }
 
-/**
- * Maneja la subida del archivo de mensajes.
- */
 async function handleFileUpload(event) {
     event.preventDefault();
     const fileInput = document.getElementById('fileInput');
     const uploadMessage = document.getElementById('uploadMessage');
-
+    
     if (fileInput.files.length === 0) {
         uploadMessage.textContent = 'Por favor, selecciona un archivo.';
-        uploadMessage.className = 'error';
         return;
     }
 
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
-
-    uploadMessage.textContent = 'Subiendo y procesando archivo...';
-    uploadMessage.className = 'info';
+    uploadMessage.textContent = 'Subiendo y procesando...';
 
     try {
-        const response = await fetch('/api/mensajes/upload', { // URL Corregida
+        const response = await fetch('/api/mensajes/upload', {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${getToken()}` },
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` },
             body: formData
         });
 
         const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `Error HTTP ${response.status}`);
 
-        if (!response.ok) {
-            throw new Error(result.error || `Error HTTP ${response.status}`);
-        }
-
-        uploadMessage.textContent = `Archivo procesado exitosamente. ${result.mensajesGuardados} mensajes fueron guardados.`;
-        uploadMessage.className = 'success';
-        
-        // Recargar estadísticas después de una subida exitosa
+        uploadMessage.textContent = `Archivo procesado. ${result.mensajesGuardados} mensajes guardados.`;
         cargarEstadisticas();
-
+        if (localStorage.getItem('userRole') === 'admin') cargarUsuarios();
     } catch (error) {
-        console.error('Error en la subida de archivo:', error);
         uploadMessage.textContent = `Error: ${error.message}`;
-        uploadMessage.className = 'error';
     }
-}
-
-// Funciones de utilidad que podrían ser llamadas por los botones
-function editarUsuario(id) {
-    // Lógica para abrir un modal o redirigir a una página de edición
-    alert(`Funcionalidad de editar para usuario ID: ${id} no implementada.`);
-}
-
-function desactivarUsuario(id, username) {
-    if (confirm(`¿Estás seguro de que quieres desactivar al usuario "${username}"?`)) {
-        // Lógica para llamar a la API y desactivar
-        alert(`Funcionalidad de desactivar para usuario ID: ${id} no implementada.`);
-    }
-}
-
-// Funciones de autenticación (ya presentes en auth.js, pero necesarias aquí también)
-function getToken() {
-    return localStorage.getItem('jwtToken');
 }
 
 function logout() {
     localStorage.clear();
-    alert('Sesión cerrada.');
     window.location.href = 'index.html';
 }

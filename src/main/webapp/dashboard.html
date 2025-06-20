@@ -3,67 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Agente IA</title>
-    <!-- Tu CSS existente -->
+    <title>Dashboard - Agente de Mensajes</title>
     <link rel="stylesheet" href="css/dashboard-styles.css">
 </head>
 <body>
-    <!-- Contenedor principal de la aplicación -->
-    <div class="dashboard-container">
-        <!-- El sidebar se renderiza aquí dinámicamente -->
-        <aside class="sidebar" id="sidebar-container"></aside>
+    <header>
+        <h1 id="welcomeMessage">Bienvenido</h1>
+        <button id="logoutButton">Cerrar Sesión</button>
+    </header>
+
+    <main>
+        <!-- Sección de Administración (solo visible para 'admin') -->
+        <section id="adminSection" style="display: none;">
+            <h2>Gestión de Usuarios</h2>
+            <div id="userError" class="error-message"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Nombre Completo</th>
+                        <th>Rol</th>
+                        <th>Activo</th>
+                        <th>Fecha Creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <!-- El JavaScript llenará esta tabla -->
+                <tbody id="userList"></tbody>
+            </table>
+        </section>
+
+        <!-- Sección de Estadísticas (visible para todos) -->
+        <section>
+            <h2>Estadísticas de Mensajes</h2>
+            <!-- El JavaScript llenará este div -->
+            <div id="messageStats"></div>
+        </section>
         
-        <!-- El panel principal que cambia de contenido -->
-        <div class="main-panel">
-            <header class="top-bar">
-                <div id="welcomeMessage">Bienvenido, <span id="username-display"></span></div>
-                <button id="logoutButton">Cerrar Sesión</button>
-            </header>
-            
-            <!-- El contenido de las vistas (dashboard, usuarios, etc.) se inyecta aquí -->
-            <main class="content" id="main-content"></main>
-        </div>
-    </div>
-
-    <!-- MODAL DE USUARIO (de usuarios.jsp) - Oculto por defecto -->
-    <div id="userModal" class="modal">
-        <div class="modal-content">
-            <span id="closeModalBtn" class="close-btn">&times;</span>
-            <h3 id="formTitle">Crear/Editar Usuario</h3>
-            <form id="userForm" novalidate>
-                <input type="hidden" id="userId" name="userId">
-                
-                <label for="usernameInput">Username:</label>
-                <input type="text" id="usernameInput" name="username" required autocomplete="off">
-                
-                <label for="passwordInput">Contraseña:</label>
-                <input type="password" id="passwordInput" name="password" placeholder="Dejar en blanco para no cambiar" autocomplete="new-password">
-                
-                <label for="nombreCompletoInput">Nombre Completo:</label>
-                <input type="text" id="nombreCompletoInput" name="nombreCompleto">
-                
-                <label for="rolInput">Rol:</label>
-                <select id="rolInput" name="rol" required>
-                    <option value="calidad">Calidad</option>
-                    <option value="admin">Admin</option>
-                </select>
-                
-                <!-- INICIO DE LA CORRECCIÓN: Se ha añadido id="activoInput" a la etiqueta label -->
-                <label id="activoInput" for="activoCheckbox" style="display: none; align-items: center; margin-top: 15px;">
-                    <input type="checkbox" id="activoCheckbox" name="activo" style="width: auto; margin-right: 10px;">
-                    Usuario Activo
-                </label>
-                <!-- FIN DE LA CORRECCIÓN -->
-                
-                <div id="formError" class="error" style="margin-top: 15px;"></div>
-
-                <button type="submit">Guardar</button>
+        <!-- Sección de Carga de Archivos (visible para todos) -->
+        <section>
+            <h2>Cargar Archivo de Mensajes (.xlsx)</h2>
+            <form id="uploadForm">
+                <input type="file" id="fileInput" name="file" accept=".xlsx" required>
+                <button type="submit">Cargar y Procesar</button>
             </form>
-        </div>
-    </div>
+            <div id="uploadMessage" class="message"></div>
+        </section>
+    </main>
 
-    <!-- Scripts de la aplicación -->
-    <script src="js/auth.js"></script>
+    <!-- Scripts al final para un mejor rendimiento -->
     <script src="js/dashboard.js"></script>
 </body>
 </html>
