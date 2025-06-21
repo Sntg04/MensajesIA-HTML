@@ -1,14 +1,42 @@
 package com.ia.mensajes.agentemensajesia.model;
+
 public class EstadisticaMensaje {
-    private String nombreAsesor;
-    private String textoOriginal;
-    private long cantidad;
-    public EstadisticaMensaje(String nombreAsesor, String textoOriginal, long cantidad) {
-        this.nombreAsesor = nombreAsesor;
-        this.textoOriginal = textoOriginal;
-        this.cantidad = cantidad;
+    
+    private long totalMensajes;
+    private double confianzaPromedioSpam;
+    private double confianzaPromedioNoSpam;
+
+    public EstadisticaMensaje() {}
+
+    public EstadisticaMensaje(long totalMensajes, double confianzaPromedioSpam, double confianzaPromedioNoSpam) {
+        this.totalMensajes = totalMensajes;
+        this.confianzaPromedioSpam = confianzaPromedioSpam;
+        this.confianzaPromedioNoSpam = confianzaPromedioNoSpam;
     }
-    public String getNombreAsesor() { return nombreAsesor; }
-    public String getTextoOriginal() { return textoOriginal; }
-    public long getCantidad() { return cantidad; }
+
+    // Getters
+    public long getTotalMensajes() {
+        return totalMensajes;
+    }
+
+    public double getConfianzaPromedioSpam() {
+        return confianzaPromedioSpam;
+    }
+
+    public double getConfianzaPromedioNoSpam() {
+        return confianzaPromedioNoSpam;
+    }
+
+    // --- SETTERS AÑADIDOS QUE SOLUCIONAN EL ERROR ---
+    public void setTotalMensajes(long totalMensajes) {
+        this.totalMensajes = totalMensajes;
+    }
+
+    public void setConfianzaPromedioSpam(double confianzaPromedioSpam) {
+        this.confianzaPromedioSpam = confianzaPromedioSpam;
+    }
+
+    public void setConfianzaPromedioNoSpam(double confianzaPromedioNoSpam) {
+        this.confianzaPromedioNoSpam = confianzaPromedioNoSpam;
+    }
 }
