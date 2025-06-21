@@ -22,11 +22,11 @@
         <!-- Contenido Principal -->
         <main class="main-content">
             <header class="main-header">
-                <h2 id="welcomeMessage">Bienvenido</h2>
+                <h2 id="welcomeMessage"></h2>
                 <button id="logoutButton" class="logout-btn">Cerrar Sesión</button>
             </header>
 
-            <!-- Secciones de Contenido -->
+            <!-- Contenido Dinámico -->
             <div id="inicio" class="content-section active">
                 <h3>¡Bienvenido al Panel de Administración!</h3>
                 <p>Selecciona una opción del menú de la izquierda para comenzar a trabajar.</p>
@@ -38,13 +38,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Nombre Completo</th>
-                            <th>Rol</th>
-                            <th>Activo</th>
-                            <th>Fecha Creación</th>
-                            <th>Acciones</th>
+                            <th>ID</th><th>Username</th><th>Nombre</th><th>Rol</th><th>Activo</th><th>Creación</th><th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="userList"></tbody>
@@ -53,7 +47,7 @@
 
             <div id="estadisticas" class="content-section">
                 <h3>Estadísticas de Mensajes</h3>
-                <div id="messageStats">Cargando...</div>
+                <div id="messageStats"></div>
             </div>
 
             <div id="carga" class="content-section">

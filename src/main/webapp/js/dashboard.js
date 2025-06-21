@@ -1,46 +1,37 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificación inicial de autenticación
     const token = localStorage.getItem('jwtToken');
     if (!token) {
         window.location.href = 'index.html';
         return;
     }
     
-    // Configuración inicial de la UI
     setupUI();
-    
-    // Carga de datos inicial
-    const userRole = localStorage.getItem('userRole');
-    if (userRole === 'admin') {
-        cargarUsuarios();
-    }
-    cargarEstadisticas();
-    
-    // Manejadores de eventos
     setupEventListeners();
 });
 
 function setupUI() {
-    const username = localStorage.getItem('username');
-    document.getElementById('welcomeMessage').textContent = `Bienvenido, ${username}`;
+    document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
+    // Cargar la vista inicial (sección de usuarios para el admin)
+    const userRole = localStorage.getItem('userRole');
+    if (userRole === 'admin') {
+        switchView('usuarios');
+        cargarUsuarios();
+    } else {
+        switchView('estadisticas');
+    }
+    cargarEstadisticas();
 }
 
-function setupEventListeners() {
-    // Navegación del menú lateral
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('click', (event) => {
-            event.preventDefault();
-            
-            // Quitar clase activa de todos los links y secciones
-            navLinks.forEach(l => l.classList.remove('active'));
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+// ---- MANEJO DE VISTAS Y EVENTOS ----
 
-            // Añadir clase activa al link clickeado y a la sección correspondiente
-            link.classList.add('active');
-            const targetId = link.getAttribute('data-target');
-            document.getElementById(targetId).classList.add('active');
-        });
+function setupEventListeners() {
+    // Navegación del menú
+    document.querySelector('.sidebar-nav').addEventListener('click', (event) => {
+        if (event.target.matches('.nav-link')) {
+            event.preventDefault();
+            const targetId = event.target.getAttribute('data-target');
+            switchView(targetId);
+        }
     });
 
     // Logout
@@ -51,67 +42,81 @@ function setupEventListeners() {
 
     // Formulario de carga de archivo
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
+    
+    // Delegación de eventos para botones en la tabla de usuarios
+    document.getElementById('userList').addEventListener('click', handleUserActions);
+}
+
+function switchView(targetId) {
+    // Ocultar todas las secciones
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    // Desactivar todos los links
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+    // Mostrar la sección y activar el link correspondiente
+    document.getElementById(targetId).classList.add('active');
+    document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
+}
+
+// ---- LÓGICA DE LA API ----
+
+async function fetchAPI(url, options = {}) {
+    const defaultOptions = {
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+            'Content-Type': 'application/json'
+        }
+    };
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(errorData.error || `Error HTTP ${response.status}`);
+    }
+    // Si la respuesta no tiene cuerpo (ej. en un DELETE), devolvemos el status
+    return response.status === 204 ? { success: true } : response.json();
 }
 
 async function cargarUsuarios() {
     const userList = document.getElementById('userList');
-    const errorMessage = document.getElementById('userError');
-    if (!userList || !errorMessage) return;
-
-    errorMessage.textContent = '';
     userList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
-
     try {
-        const response = await fetch('/api/usuarios', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
-        });
-        if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-        
-        const usuarios = await response.json();
+        const usuarios = await fetchAPI('/api/usuarios');
         userList.innerHTML = '';
-        
         usuarios.forEach(usuario => {
-            const fecha = usuario.fechaCreacion ? new Date(usuario.fechaCreacion).toLocaleDateString('es-ES') : 'N/A';
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${usuario.id}</td>
-                <td>${usuario.username}</td>
-                <td>${usuario.nombreCompleto || 'N/A'}</td>
-                <td>${usuario.rol}</td>
-                <td>${usuario.activo ? 'Sí' : 'No'}</td>
-                <td>${fecha}</td>
-                <td>
-                    <button class="edit-btn">Editar</button>
-                    <button class="delete-btn">Desactivar</button>
-                </td>
-            `;
-            userList.appendChild(row);
+            const fecha = new Date(usuario.fechaCreacion).toLocaleDateString('es-ES');
+            userList.innerHTML += `
+                <tr>
+                    <td>${usuario.id}</td>
+                    <td>${usuario.username}</td>
+                    <td>${usuario.nombreCompleto || 'N/A'}</td>
+                    <td>${usuario.rol}</td>
+                    <td>${usuario.activo ? 'Sí' : 'No'}</td>
+                    <td>${fecha}</td>
+                    <td>
+                        <button class="edit-btn" data-id="${usuario.id}">Editar</button>
+                        <button class="delete-btn" data-id="${usuario.id}" data-username="${usuario.username}">
+                            ${usuario.activo ? 'Desactivar' : 'Activar'}
+                        </button>
+                    </td>
+                </tr>`;
         });
-
     } catch (error) {
-        errorMessage.textContent = 'Error al cargar la lista de usuarios.';
+        document.getElementById('userError').textContent = `Error: ${error.message}`;
     }
 }
 
 async function cargarEstadisticas() {
     const statsContainer = document.getElementById('messageStats');
-    if (!statsContainer) return;
-
     statsContainer.innerHTML = 'Cargando...';
     try {
-        const response = await fetch('/api/mensajes/stats', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
-        });
-        if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-
-        const estadisticas = await response.json();
+        const stats = await fetchAPI('/api/mensajes/stats');
         statsContainer.innerHTML = `
-            <p><strong>Total de Mensajes:</strong> ${estadisticas.totalMensajes || 0}</p>
-            <p><strong>Promedio de Confianza (SPAM):</strong> ${((estadisticas.confianzaPromedioSpam || 0) * 100).toFixed(2)}%</p>
-            <p><strong>Promedio de Confianza (NO SPAM):</strong> ${((estadisticas.confianzaPromedioNoSpam || 0) * 100).toFixed(2)}%</p>
+            <p><strong>Total de Mensajes:</strong> ${stats.totalMensajes || 0}</p>
+            <p><strong>Promedio Confianza (SPAM):</strong> ${((stats.confianzaPromedioSpam || 0) * 100).toFixed(2)}%</p>
+            <p><strong>Promedio Confianza (NO SPAM):</strong> ${((stats.confianzaPromedioNoSpam || 0) * 100).toFixed(2)}%</p>
         `;
     } catch (error) {
-        statsContainer.innerHTML = '<p class="error-message">Error al cargar estadísticas.</p>';
+        statsContainer.innerHTML = `<p class="error-message">Error al cargar estadísticas: ${error.message}</p>`;
     }
 }
 
@@ -120,32 +125,55 @@ async function handleFileUpload(event) {
     const fileInput = document.getElementById('fileInput');
     const uploadMessage = document.getElementById('uploadMessage');
     
-    if (fileInput.files.length === 0) {
-        uploadMessage.textContent = 'Por favor, selecciona un archivo.';
-        return;
-    }
-
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
-    uploadMessage.textContent = 'Subiendo y procesando...';
+    uploadMessage.textContent = 'Procesando...';
 
     try {
+        // Para FormData no se debe setear Content-Type, el browser lo hace
         const response = await fetch('/api/mensajes/upload', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` },
             body: formData
         });
-
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || `Error HTTP ${response.status}`);
+        if (!response.ok) throw new Error(result.error);
 
-        uploadMessage.textContent = `Archivo procesado con éxito. ${result.mensajesGuardados} mensajes fueron guardados.`;
-        // Recargar datos después de la subida
+        uploadMessage.textContent = `Éxito: ${result.mensajesGuardados} mensajes guardados.`;
         cargarEstadisticas();
-        if (localStorage.getItem('userRole') === 'admin') {
-            cargarUsuarios();
-        }
     } catch (error) {
         uploadMessage.textContent = `Error: ${error.message}`;
     }
 }
+
+async function handleUserActions(event) {
+    const target = event.target;
+    const userId = target.dataset.id;
+
+    if (target.matches('.delete-btn')) {
+        const username = target.dataset.username;
+        const isActive = target.textContent.trim() === 'Desactivar';
+        const actionText = isActive ? 'desactivar' : 'activar';
+
+        if (confirm(`¿Estás seguro de que quieres ${actionText} al usuario "${username}"?`)) {
+            try {
+                // Tu API ya tiene un endpoint para desactivar/activar cambiando el estado
+                // Usaremos el endpoint de actualizar para cambiar el estado 'activo'
+                const user = await fetchAPI(`/api/usuarios/${userId}`);
+                await fetchAPI(`/api/usuarios/${userId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ ...user, activo: !isActive })
+                });
+                alert(`Usuario ${actionText} con éxito.`);
+                cargarUsuarios(); // Recargar la lista
+            } catch (error) {
+                alert(`Error al ${actionText} el usuario: ${error.message}`);
+            }
+        }
+    }
+
+    if (target.matches('.edit-btn')) {
+        alert(`La funcionalidad de editar para el usuario ID: ${userId} aún no está implementada.`);
+    }
+}
+
