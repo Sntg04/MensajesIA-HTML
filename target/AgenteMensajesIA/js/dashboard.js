@@ -1,55 +1,62 @@
-/**
- * js/dashboard.js
- * Maneja la lógica del panel de control.
- */
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Dashboard DOM cargado. Verificando autenticación...");
+    // Verificación inicial de autenticación
     const token = localStorage.getItem('jwtToken');
     if (!token) {
-        console.error("No se encontró token. Redirigiendo a login.");
         window.location.href = 'index.html';
         return;
     }
-
-    const username = localStorage.getItem('username');
+    
+    // Configuración inicial de la UI
+    setupUI();
+    
+    // Carga de datos inicial
     const userRole = localStorage.getItem('userRole');
-
-    if (document.getElementById('welcomeMessage')) {
-        document.getElementById('welcomeMessage').textContent = `Bienvenido, ${username}`;
-    }
-    if (document.getElementById('logoutButton')) {
-        document.getElementById('logoutButton').addEventListener('click', logout);
-    }
-    
-    console.log(`Usuario: ${username}, Rol: ${userRole}`);
-
     if (userRole === 'admin') {
-        console.log("Usuario es admin. Mostrando sección de administración.");
-        const adminSection = document.getElementById('adminSection');
-        if(adminSection) {
-            adminSection.style.display = 'block';
-            cargarUsuarios();
-        } else {
-            console.error("No se encontró el elemento #adminSection en el HTML.");
-        }
+        cargarUsuarios();
     }
-    
     cargarEstadisticas();
-
-    const uploadForm = document.getElementById('uploadForm');
-    if (uploadForm) {
-        uploadForm.addEventListener('submit', handleFileUpload);
-    }
+    
+    // Manejadores de eventos
+    setupEventListeners();
 });
 
+function setupUI() {
+    const username = localStorage.getItem('username');
+    document.getElementById('welcomeMessage').textContent = `Bienvenido, ${username}`;
+}
+
+function setupEventListeners() {
+    // Navegación del menú lateral
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            
+            // Quitar clase activa de todos los links y secciones
+            navLinks.forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+
+            // Añadir clase activa al link clickeado y a la sección correspondiente
+            link.classList.add('active');
+            const targetId = link.getAttribute('data-target');
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
+
+    // Logout
+    document.getElementById('logoutButton').addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    });
+
+    // Formulario de carga de archivo
+    document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
+}
+
 async function cargarUsuarios() {
-    console.log("Intentando cargar usuarios...");
     const userList = document.getElementById('userList');
     const errorMessage = document.getElementById('userError');
-    if (!userList || !errorMessage) {
-        console.error("Faltan elementos HTML #userList o #userError");
-        return;
-    }
+    if (!userList || !errorMessage) return;
 
     errorMessage.textContent = '';
     userList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
@@ -58,21 +65,13 @@ async function cargarUsuarios() {
         const response = await fetch('/api/usuarios', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
         });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP ${response.status}: ${await response.text()}`);
-        }
-
+        if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
+        
         const usuarios = await response.json();
-        console.log("Usuarios recibidos:", usuarios);
         userList.innerHTML = '';
         
-        if (usuarios.length === 0) {
-            userList.innerHTML = '<tr><td colspan="7">No se encontraron usuarios.</td></tr>';
-            return;
-        }
-
         usuarios.forEach(usuario => {
+            const fecha = usuario.fechaCreacion ? new Date(usuario.fechaCreacion).toLocaleDateString('es-ES') : 'N/A';
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${usuario.id}</td>
@@ -80,50 +79,39 @@ async function cargarUsuarios() {
                 <td>${usuario.nombreCompleto || 'N/A'}</td>
                 <td>${usuario.rol}</td>
                 <td>${usuario.activo ? 'Sí' : 'No'}</td>
-                <td>${new Date(usuario.fechaCreacion).toLocaleDateString()}</td>
+                <td>${fecha}</td>
                 <td>
-                    <button class="edit-btn" data-id="${usuario.id}">Editar</button>
-                    <button class="delete-btn" data-id="${usuario.id}" data-username="${usuario.username}">Desactivar</button>
+                    <button class="edit-btn">Editar</button>
+                    <button class="delete-btn">Desactivar</button>
                 </td>
             `;
             userList.appendChild(row);
         });
 
     } catch (error) {
-        console.error('Error al cargar usuarios:', error);
         errorMessage.textContent = 'Error al cargar la lista de usuarios.';
-        userList.innerHTML = '';
     }
 }
 
 async function cargarEstadisticas() {
-    console.log("Intentando cargar estadísticas...");
     const statsContainer = document.getElementById('messageStats');
-    if(!statsContainer) {
-        console.error("Falta elemento HTML #messageStats");
-        return;
-    }
-    statsContainer.textContent = 'Cargando estadísticas...';
+    if (!statsContainer) return;
 
+    statsContainer.innerHTML = 'Cargando...';
     try {
         const response = await fetch('/api/mensajes/stats', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
         });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
 
         const estadisticas = await response.json();
-        console.log("Estadísticas recibidas:", estadisticas);
         statsContainer.innerHTML = `
-            <p><strong>Total de Mensajes:</strong> ${estadisticas.totalMensajes}</p>
-            <p><strong>Promedio de Confianza (SPAM):</strong> ${(estadisticas.confianzaPromedioSpam * 100).toFixed(2)}%</p>
-            <p><strong>Promedio de Confianza (NO SPAM):</strong> ${(estadisticas.confianzaPromedioNoSpam * 100).toFixed(2)}%</p>
+            <p><strong>Total de Mensajes:</strong> ${estadisticas.totalMensajes || 0}</p>
+            <p><strong>Promedio de Confianza (SPAM):</strong> ${((estadisticas.confianzaPromedioSpam || 0) * 100).toFixed(2)}%</p>
+            <p><strong>Promedio de Confianza (NO SPAM):</strong> ${((estadisticas.confianzaPromedioNoSpam || 0) * 100).toFixed(2)}%</p>
         `;
     } catch (error) {
-        console.error('Error al cargar estadísticas:', error);
-        statsContainer.textContent = 'Error al cargar estadísticas.';
+        statsContainer.innerHTML = '<p class="error-message">Error al cargar estadísticas.</p>';
     }
 }
 
@@ -151,15 +139,13 @@ async function handleFileUpload(event) {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `Error HTTP ${response.status}`);
 
-        uploadMessage.textContent = `Archivo procesado. ${result.mensajesGuardados} mensajes guardados.`;
+        uploadMessage.textContent = `Archivo procesado con éxito. ${result.mensajesGuardados} mensajes fueron guardados.`;
+        // Recargar datos después de la subida
         cargarEstadisticas();
-        if (localStorage.getItem('userRole') === 'admin') cargarUsuarios();
+        if (localStorage.getItem('userRole') === 'admin') {
+            cargarUsuarios();
+        }
     } catch (error) {
         uploadMessage.textContent = `Error: ${error.message}`;
     }
-}
-
-function logout() {
-    localStorage.clear();
-    window.location.href = 'index.html';
 }

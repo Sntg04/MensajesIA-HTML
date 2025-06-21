@@ -3,56 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Agente de Mensajes</title>
+    <title>Dashboard - Agente IA</title>
     <link rel="stylesheet" href="css/dashboard-styles.css">
 </head>
 <body>
-    <header>
-        <h1 id="welcomeMessage">Bienvenido</h1>
-        <button id="logoutButton">Cerrar Sesión</button>
-    </header>
+    <div class="dashboard-container">
+        <!-- Menú Lateral -->
+        <aside class="sidebar">
+            <h1 class="sidebar-title">Menú Admin</h1>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-target="inicio">Inicio</a>
+                <a href="#" class="nav-link" data-target="usuarios">Gestionar Usuarios</a>
+                <a href="#" class="nav-link" data-target="estadisticas">Ver Estadísticas</a>
+                <a href="#" class="nav-link" data-target="carga">Cargar Archivo</a>
+            </nav>
+        </aside>
 
-    <main>
-        <!-- Sección de Administración (solo visible para 'admin') -->
-        <section id="adminSection" style="display: none;">
-            <h2>Gestión de Usuarios</h2>
-            <div id="userError" class="error-message"></div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Username</th>
-                        <th>Nombre Completo</th>
-                        <th>Rol</th>
-                        <th>Activo</th>
-                        <th>Fecha Creación</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <!-- El JavaScript llenará esta tabla -->
-                <tbody id="userList"></tbody>
-            </table>
-        </section>
+        <!-- Contenido Principal -->
+        <main class="main-content">
+            <header class="main-header">
+                <h2 id="welcomeMessage">Bienvenido</h2>
+                <button id="logoutButton" class="logout-btn">Cerrar Sesión</button>
+            </header>
 
-        <!-- Sección de Estadísticas (visible para todos) -->
-        <section>
-            <h2>Estadísticas de Mensajes</h2>
-            <!-- El JavaScript llenará este div -->
-            <div id="messageStats"></div>
-        </section>
-        
-        <!-- Sección de Carga de Archivos (visible para todos) -->
-        <section>
-            <h2>Cargar Archivo de Mensajes (.xlsx)</h2>
-            <form id="uploadForm">
-                <input type="file" id="fileInput" name="file" accept=".xlsx" required>
-                <button type="submit">Cargar y Procesar</button>
-            </form>
-            <div id="uploadMessage" class="message"></div>
-        </section>
-    </main>
+            <!-- Secciones de Contenido -->
+            <div id="inicio" class="content-section active">
+                <h3>¡Bienvenido al Panel de Administración!</h3>
+                <p>Selecciona una opción del menú de la izquierda para comenzar a trabajar.</p>
+            </div>
 
-    <!-- Scripts al final para un mejor rendimiento -->
+            <div id="usuarios" class="content-section">
+                <h3>Gestión de Usuarios</h3>
+                <div id="userError" class="error-message"></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Nombre Completo</th>
+                            <th>Rol</th>
+                            <th>Activo</th>
+                            <th>Fecha Creación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userList"></tbody>
+                </table>
+            </div>
+
+            <div id="estadisticas" class="content-section">
+                <h3>Estadísticas de Mensajes</h3>
+                <div id="messageStats">Cargando...</div>
+            </div>
+
+            <div id="carga" class="content-section">
+                <h3>Cargar Archivo de Mensajes (.xlsx)</h3>
+                <form id="uploadForm">
+                    <input type="file" id="fileInput" name="file" accept=".xlsx" required>
+                    <button type="submit">Cargar y Procesar</button>
+                </form>
+                <div id="uploadMessage" class="message"></div>
+            </div>
+        </main>
+    </div>
+
     <script src="js/dashboard.js"></script>
 </body>
 </html>

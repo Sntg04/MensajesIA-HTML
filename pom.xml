@@ -9,11 +9,10 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Usamos Java 11, una versión de soporte a largo plazo (LTS) muy estable -->
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-
-        <!-- Versiones de las dependencias -->
+        <!-- Actualizamos todo a Java 17 para ser compatible con las librerías modernas -->
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        
         <jakarta.servlet.api.version>6.0.0</jakarta.servlet.api.version>
         <jakarta.ws.rs.version>3.1.0</jakarta.ws.rs.version>
         <jakarta.persistence.version>3.1.0</jakarta.persistence.version>
@@ -22,47 +21,39 @@
         <postgresql.connector.version>42.7.3</postgresql.connector.version>
         <apache.poi.version>5.2.5</apache.poi.version>
         
-        <!-- Versiones compatibles con Java 11 -->
-        <opennlp.tools.version>1.9.4</opennlp.tools.version>
-        <spring.security.crypto.version>5.7.12</spring.security.crypto.version>
+        <!-- Versiones que requieren Java 17 -->
+        <opennlp.tools.version>2.3.2</opennlp.tools.version>
+        <spring.security.crypto.version>6.2.4</spring.security.crypto.version>
         
         <commons.logging.version>1.3.1</commons.logging.version>
         <jjwt.version>0.11.5</jjwt.version>
-        <jakarta.servlet.jsp.jstl.version>3.0.0</jakarta.servlet.jsp.jstl.version>
-        <glassfish.jstl.version>3.0.1</glassfish.jstl.version>
     </properties>
 
     <dependencies>
-        <!-- Dependencia para el procesamiento de lenguaje natural -->
+        <!-- Dependencias con versiones alineadas a Java 17 -->
         <dependency>
             <groupId>org.apache.opennlp</groupId>
             <artifactId>opennlp-tools</artifactId>
             <version>${opennlp.tools.version}</version>
         </dependency>
-        
-        <!-- Dependencia para encriptación de contraseñas -->
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-crypto</artifactId>
             <version>${spring.security.crypto.version}</version>
         </dependency>
         
-        <!-- API de Servlets de Jakarta -->
+        <!-- Resto de dependencias -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <version>${jakarta.servlet.api.version}</version>
             <scope>provided</scope>
         </dependency>
-        
-        <!-- API de JAX-RS (Servicios REST) -->
         <dependency>
             <groupId>jakarta.ws.rs</groupId>
             <artifactId>jakarta.ws.rs-api</artifactId>
             <version>${jakarta.ws.rs.version}</version>
         </dependency>
-        
-        <!-- Implementación de JAX-RS: Jersey -->
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-servlet</artifactId>
@@ -83,30 +74,22 @@
             <artifactId>jersey-media-multipart</artifactId>
             <version>${jersey.version}</version>
         </dependency>
-
-        <!-- API de Persistencia de Jakarta (JPA) -->
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
             <version>${jakarta.persistence.version}</version>
         </dependency>
-        
-        <!-- Implementación de JPA: Hibernate -->
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
             <version>${hibernate.version}</version>
         </dependency>
-        
-        <!-- Conector de la Base de Datos PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.connector.version}</version>
             <scope>runtime</scope>
         </dependency>
-        
-        <!-- Librerías para leer archivos Excel -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi</artifactId>
@@ -117,15 +100,11 @@
             <artifactId>poi-ooxml</artifactId>
             <version>${apache.poi.version}</version>
         </dependency>
-
-        <!-- Logging -->
         <dependency>
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>
             <version>${commons.logging.version}</version>
         </dependency>
-        
-        <!-- Librerías para Tokens JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -143,18 +122,6 @@
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Librerías para JSTL (si usaras JSPs, es bueno tenerlas) -->
-        <dependency>
-            <groupId>jakarta.servlet.jsp.jstl</groupId>
-            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
-            <version>${jakarta.servlet.jsp.jstl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.web</groupId>
-            <artifactId>jakarta.servlet.jsp.jstl</artifactId>
-            <version>${glassfish.jstl.version}</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -163,19 +130,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
                 <configuration>
-                    <source>11</source>
-                    <target>11</target>
+                    <release>17</release>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.3.2</version>
-                <configuration>
-                    <failOnMissingWebXml>false</failOnMissingWebXml>
-                </configuration>
             </plugin>
         </plugins>
     </build>
