@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Si no hay token, redirige al login.
     if (!localStorage.getItem('jwtToken')) {
         window.location.href = 'index.html';
         return;
@@ -15,6 +16,7 @@ function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
     const userRole = localStorage.getItem('userRole');
 
+    // Muestra/oculta la pestaña de usuarios según el rol
     if (userRole === 'admin') {
         switchView('usuarios');
         cargarUsuarios();
@@ -203,35 +205,22 @@ async function cargarMensajes(page = 0) {
     }
 }
 
-/**
- * Renderiza los controles de paginación (Anterior, info de página, Siguiente).
- * @param {number} totalPages - El número total de páginas.
- * @param {number} currentPage - La página actual (basada en índice 0).
- */
 function renderizarPaginacion(totalPages, currentPage) {
     const container = document.getElementById('pagination-container');
-    container.innerHTML = ''; // Limpiar controles anteriores
-
-    // No mostrar nada si hay 1 o 0 páginas
+    container.innerHTML = '';
     if (totalPages <= 1) return;
-
-    // 1. Botón "Anterior"
     const prevButton = document.createElement('button');
-    prevButton.innerHTML = '&laquo;'; // Ícono de flecha izquierda «
+    prevButton.innerHTML = '&laquo;';
     prevButton.title = 'Página Anterior';
     prevButton.dataset.page = currentPage - 1;
     prevButton.disabled = currentPage === 0;
     container.appendChild(prevButton);
-
-    // 2. Texto informativo "Página X de Y"
     const info = document.createElement('span');
     info.className = 'info-text';
     info.textContent = `Página ${currentPage + 1} de ${totalPages}`;
     container.appendChild(info);
-
-    // 3. Botón "Siguiente"
     const nextButton = document.createElement('button');
-    nextButton.innerHTML = '&raquo;'; // Ícono de flecha derecha »
+    nextButton.innerHTML = '&raquo;';
     nextButton.title = 'Página Siguiente';
     nextButton.dataset.page = currentPage + 1;
     nextButton.disabled = currentPage >= totalPages - 1;
@@ -276,32 +265,28 @@ async function cargarEstadisticas() {
     }
 }
 
-// En dashboard.js
-
 async function handleFileUpload(event) {
     event.preventDefault();
     const fileInput = document.getElementById('fileInput');
     const uploadMessage = document.getElementById('uploadMessage');
     const progressContainer = document.getElementById('progress-container');
     const submitButton = event.target.querySelector('button');
-
     if (fileInput.files.length === 0) {
         uploadMessage.textContent = 'Por favor, selecciona un archivo.';
         return;
     }
-
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
-    uploadMessage.textContent = ''; // Limpiar mensaje anterior
-    progressContainer.style.display = 'block'; // Mostrar la barra de progreso
+    uploadMessage.textContent = '';
+    progressContainer.style.display = 'block';
     submitButton.disabled = true;
-
     try {
         const result = await fetchAPI('/api/mensajes/upload', { method: 'POST', body: formData });
-        pollLoteStatus(result.loteId); // Iniciar polling
+        uploadMessage.textContent = `${result.mensaje} Verificando estado...`;
+        pollLoteStatus(result.loteId);
     } catch (error) {
         uploadMessage.textContent = `Error: ${error.message}`;
-        progressContainer.style.display = 'none'; // Ocultar barra en caso de error
+        progressContainer.style.display = 'none';
     } finally {
         submitButton.disabled = false;
         fileInput.value = '';
@@ -313,37 +298,34 @@ function pollLoteStatus(loteId) {
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
     const progressContainer = document.getElementById('progress-container');
-    
     const intervalId = setInterval(async () => {
         try {
             const statusResult = await fetchAPI(`/api/mensajes/lotes/${loteId}/status`);
-            
-            // Actualizar la barra de progreso y el texto
             progressBar.style.width = `${statusResult.progress}%`;
             progressText.textContent = `${statusResult.progress}%`;
-
             if (statusResult.status === 'COMPLETADO') {
                 clearInterval(intervalId);
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
-                progressBar.style.backgroundColor = '#2ecc71'; // Color verde para éxito
+                progressBar.style.backgroundColor = '#2ecc71';
                 setTimeout(() => {
-                    cargarMensajes();
+                    cargarMensajes(0); // Carga la primera página de resultados
                     cargarEstadisticas();
-                    progressContainer.style.display = 'none'; // Ocultar barra
-                    progressBar.style.width = '0%'; // Resetear barra
-                    progressBar.style.backgroundColor = 'var(--accent-color)'; // Resetear color
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    progressBar.style.backgroundColor = 'var(--accent-color)';
                     uploadMessage.textContent = 'Tablas actualizadas.';
                 }, 2000);
-
             } else if (statusResult.status === 'FALLIDO') {
                 clearInterval(intervalId);
                 uploadMessage.textContent = 'Error: El procesamiento del archivo en el servidor ha fallado.';
-                progressBar.style.backgroundColor = '#e53935'; // Color rojo para error
+                progressBar.style.backgroundColor = '#e53935';
+            } else {
+                uploadMessage.textContent = `Procesando...`;
             }
         } catch (error) {
             clearInterval(intervalId);
             uploadMessage.textContent = 'Error de conexión al verificar el estado del proceso.';
             progressContainer.style.display = 'none';
         }
-    }, 2000); // Preguntar cada 2 segundos
+    }, 1000);
 }
