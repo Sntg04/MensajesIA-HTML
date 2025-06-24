@@ -61,6 +61,21 @@ public class UsuarioResource {
         return Response.ok(prepararListaUsuariosParaRespuesta(usuarios)).build();
     }
 
+    // --- MÉTODO AÑADIDO PARA SOLUCIONAR EL ERROR ---
+    @GET
+    @Path("/{id}")
+    @RolesAllowed("admin")
+    public Response obtenerUsuarioPorId(@PathParam("id") Integer id) {
+        Usuario usuario = usuarioService.obtenerUsuarioPorId(id);
+        if (usuario == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                           .entity("{\"error\":\"Usuario no encontrado con ID: " + id + "\"}")
+                           .build();
+        }
+        return Response.ok(prepararUsuarioParaRespuesta(usuario)).build();
+    }
+    // --- FIN DEL MÉTODO AÑADIDO ---
+
     @PUT
     @Path("/{id}")
     @RolesAllowed("admin")
