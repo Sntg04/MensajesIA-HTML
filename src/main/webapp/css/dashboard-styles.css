@@ -361,3 +361,37 @@ tbody tr:hover {
         font-weight: bold;
     }
 }
+/* --- Estilos para la Barra Lateral Plegable --- */
+
+/* Estilo para el nuevo botón de menú */
+.sidebar-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 1.5em;
+    cursor: pointer;
+    margin-right: 20px;
+    padding: 0 10px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+/* Transiciones suaves para la animación */
+.sidebar, .main-content {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Cuando el contenedor principal tiene la clase 'sidebar-collapsed'... */
+.dashboard-container.sidebar-collapsed .sidebar {
+    width: 0; /* ...la barra lateral se encoge a cero. */
+    padding: 25px 0;
+    overflow: hidden; /* Oculta el contenido mientras se encoge */
+    border-right: none;
+}
+
+.dashboard-container.sidebar-collapsed .main-content {
+    margin-left: 0; /* ...el contenido principal ocupa todo el ancho. */
+}

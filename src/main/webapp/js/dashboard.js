@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Si no hay token, redirige al login.
     if (!localStorage.getItem('jwtToken')) {
         window.location.href = 'index.html';
         return;
@@ -9,14 +8,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Configura la interfaz de usuario inicial, muestra el mensaje de bienvenida
- * y carga los datos iniciales.
+ * Configura la interfaz de usuario inicial
  */
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
     const userRole = localStorage.getItem('userRole');
 
-    // Muestra/oculta la pestaña de usuarios según el rol
+    // --- LÓGICA AÑADIDA: Aplicar estado de la sidebar al cargar ---
+    if (localStorage.getItem('sidebarState') === 'collapsed') {
+        document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
+    }
+
     if (userRole === 'admin') {
         switchView('usuarios');
         cargarUsuarios();
@@ -41,12 +43,27 @@ function setupEventListeners() {
     document.getElementById('userList').addEventListener('click', handleUserTableActions);
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
     document.getElementById('pagination-container').addEventListener('click', handlePaginationClick);
+    
+    // --- LÓGICA AÑADIDA: Listener para el botón de menú ---
+    document.getElementById('sidebar-toggle').addEventListener('click', handleSidebarToggle);
 }
 
 /**
- * Cambia la vista activa en el panel principal.
- * @param {string} targetId - El ID de la sección a mostrar.
+ * Nueva función para gestionar el clic en el botón de menú.
  */
+function handleSidebarToggle() {
+    const container = document.querySelector('.dashboard-container');
+    container.classList.toggle('sidebar-collapsed');
+
+    // Guardar el estado actual en localStorage para recordarlo
+    const isCollapsed = container.classList.contains('sidebar-collapsed');
+    localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
+}
+
+// ===============================================
+// === RESTO DE FUNCIONES (SIN CAMBIOS) ===
+// ===============================================
+
 function switchView(targetId) {
     document.querySelectorAll('.content-section.active').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
@@ -54,9 +71,6 @@ function switchView(targetId) {
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
 }
 
-/**
- * Función central para realizar llamadas a la API, incluyendo el token de autorización.
- */
 async function fetchAPI(url, options = {}) {
     const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
     if (!(options.body instanceof FormData)) {
@@ -176,22 +190,17 @@ async function cargarMensajes(page = 0) {
     try {
         const paginatedData = await fetchAPI(`/api/mensajes?page=${page}&size=10`);
         const mensajes = paginatedData.content;
-        
         messageList.innerHTML = '';
         if (!mensajes || mensajes.length === 0) {
             messageList.innerHTML = '<tr><td colspan="7">No hay mensajes para mostrar. Sube un archivo.</td></tr>';
             renderizarPaginacion(0, 0);
             return;
         }
-
         mensajes.forEach(m => {
             let fechaMensaje = 'N/A';
             if (m.fechaHoraMensaje) {
                 fechaMensaje = new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
             }
-            
-            // --- INICIO DEL CAMBIO ---
-            // Añadimos el atributo data-label a cada celda <td>
             messageList.innerHTML += `
                 <tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
                     <td data-label="ID">${m.id}</td>
@@ -202,12 +211,9 @@ async function cargarMensajes(page = 0) {
                     <td data-label="Observación">${m.observacion || 'N/A'}</td>
                     <td data-label="Fecha del Mensaje">${fechaMensaje}</td>
                 </tr>`;
-            // --- FIN DEL CAMBIO ---
         });
-        
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
-
-    } catch (error) { 
+    } catch (error) {
         messageList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`;
         console.error("Error en cargarMensajes:", error);
     }
@@ -316,7 +322,7 @@ function pollLoteStatus(loteId) {
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
                 progressBar.style.backgroundColor = '#2ecc71';
                 setTimeout(() => {
-                    cargarMensajes(0); // Carga la primera página de resultados
+                    cargarMensajes(0);
                     cargarEstadisticas();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
@@ -335,5 +341,5 @@ function pollLoteStatus(loteId) {
             uploadMessage.textContent = 'Error de conexión al verificar el estado del proceso.';
             progressContainer.style.display = 'none';
         }
-    }, 1000);
+    }, 2000);
 }
