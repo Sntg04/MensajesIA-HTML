@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Si no hay token, redirige al login.
     if (!localStorage.getItem('jwtToken')) {
         window.location.href = 'index.html';
         return;
@@ -8,9 +7,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
+/**
+ * Configura la interfaz de usuario inicial, muestra el mensaje de bienvenida
+ * y carga los datos iniciales.
+ */
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
     const userRole = localStorage.getItem('userRole');
+
     if (userRole === 'admin') {
         switchView('usuarios');
         cargarUsuarios();
@@ -22,6 +26,9 @@ function setupUI() {
     cargarEstadisticas();
 }
 
+/**
+ * Asigna todos los event listeners a los botones y elementos interactivos.
+ */
 function setupEventListeners() {
     document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
     document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
@@ -31,8 +38,13 @@ function setupEventListeners() {
     document.getElementById('user-form').addEventListener('submit', handleUserFormSubmit);
     document.getElementById('userList').addEventListener('click', handleUserTableActions);
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
+    document.getElementById('pagination-container').addEventListener('click', handlePaginationClick);
 }
 
+/**
+ * Cambia la vista activa en el panel principal.
+ * @param {string} targetId - El ID de la sección a mostrar.
+ */
 function switchView(targetId) {
     document.querySelectorAll('.content-section.active').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
@@ -40,6 +52,9 @@ function switchView(targetId) {
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
 }
 
+/**
+ * Función central para realizar llamadas a la API, incluyendo el token de autorización.
+ */
 async function fetchAPI(url, options = {}) {
     const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
     if (!(options.body instanceof FormData)) {
@@ -53,7 +68,7 @@ async function fetchAPI(url, options = {}) {
     }
     if (response.status === 204 || response.headers.get("content-length") === "0") return { success: true };
     const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
+    if (contentType && contentType.includes("application/json")) {
         return response.json();
     }
     return response.blob();
@@ -153,14 +168,16 @@ async function cargarUsuarios() {
     }
 }
 
-async function cargarMensajes() {
+async function cargarMensajes(page = 0) {
     const messageList = document.getElementById('messageList');
-    messageList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
+    messageList.innerHTML = `<tr><td colspan="7">Cargando página ${page + 1}...</td></tr>`;
     try {
-        const mensajes = await fetchAPI('/api/mensajes');
+        const paginatedData = await fetchAPI(`/api/mensajes?page=${page}&size=10`);
+        const mensajes = paginatedData.content;
         messageList.innerHTML = '';
         if (!mensajes || mensajes.length === 0) {
             messageList.innerHTML = '<tr><td colspan="7">No hay mensajes para mostrar. Sube un archivo.</td></tr>';
+            renderizarPaginacion(0, 0);
             return;
         }
         mensajes.forEach(m => {
@@ -179,9 +196,44 @@ async function cargarMensajes() {
                     <td>${fechaMensaje}</td>
                 </tr>`;
         });
+        renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
     } catch (error) {
         messageList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`;
         console.error("Error en cargarMensajes:", error);
+    }
+}
+
+function renderizarPaginacion(totalPages, currentPage) {
+    const container = document.getElementById('pagination-container');
+    container.innerHTML = '';
+    if (totalPages <= 1) return;
+    const prevButton = document.createElement('button');
+    prevButton.textContent = 'Anterior';
+    prevButton.dataset.page = currentPage - 1;
+    prevButton.disabled = currentPage === 0;
+    container.appendChild(prevButton);
+    for (let i = 0; i < totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i + 1;
+        pageButton.dataset.page = i;
+        if (i === currentPage) {
+            pageButton.classList.add('active');
+        }
+        container.appendChild(pageButton);
+    }
+    const nextButton = document.createElement('button');
+    nextButton.textContent = 'Siguiente';
+    nextButton.dataset.page = currentPage + 1;
+    nextButton.disabled = currentPage >= totalPages - 1;
+    container.appendChild(nextButton);
+}
+
+function handlePaginationClick(event) {
+    const button = event.target.closest('button');
+    if (!button || button.disabled) return;
+    const page = parseInt(button.dataset.page, 10);
+    if (!isNaN(page)) {
+        cargarMensajes(page);
     }
 }
 
@@ -269,5 +321,5 @@ function pollLoteStatus(loteId) {
             clearInterval(intervalId);
             uploadMessage.textContent = 'Error de conexión al verificar el estado del proceso.';
         }
-    }, 3000);
+    }, 1000);
 }

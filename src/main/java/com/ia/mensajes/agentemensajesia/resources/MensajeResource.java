@@ -82,14 +82,22 @@ public class MensajeResource {
         return Response.ok(Map.of("status", status)).build();
     }
     
+    // En MensajeResource.java, reemplaza el método getAllMensajes
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getAllMensajes() {
+    public Response getMensajesPaginados(
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("10") int size) {
         try {
-            List<Mensaje> mensajes = mensajeService.obtenerTodosLosMensajes();
-            return Response.ok(mensajes).build();
+            // Llama al nuevo servicio de paginación
+            var paginatedResponse = mensajeService.obtenerMensajesPaginado(page, size);
+            return Response.ok(paginatedResponse).build();
         } catch(Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Error al obtener mensajes").build();
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity(Map.of("error", "Error al obtener mensajes paginados"))
+                           .build();
         }
     }
     

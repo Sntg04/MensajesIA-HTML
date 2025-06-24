@@ -131,6 +131,23 @@ public class MensajeService {
 
     // --- Otros métodos del servicio ---
 
+    // En MensajeService.java, reemplaza obtenerTodosLosMensajes() por esto:
+
+    public com.ia.mensajes.agentemensajesia.model.PaginatedResponse<Mensaje> obtenerMensajesPaginado(int numeroPagina, int tamanoPagina) {
+        long totalMensajes = mensajeDAO.contarTotalMensajes();
+        if (totalMensajes == 0) {
+            // Si no hay mensajes, devuelve una respuesta paginada vacía
+            return new com.ia.mensajes.agentemensajesia.model.PaginatedResponse<>(java.util.Collections.emptyList(), 0, 0, 0);
+        }
+        
+        List<Mensaje> mensajes = mensajeDAO.buscarPaginado(numeroPagina, tamanoPagina);
+        
+        int totalPaginas = (int) Math.ceil((double) totalMensajes / tamanoPagina);
+        
+        return new com.ia.mensajes.agentemensajesia.model.PaginatedResponse<>(mensajes, numeroPagina, totalPaginas, totalMensajes);
+    }
+
+    // Mantenemos obtenerTodosLosMensajes para la función de exportar a Excel
     public List<Mensaje> obtenerTodosLosMensajes() {
         return mensajeDAO.buscarTodos();
     }

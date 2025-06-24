@@ -88,4 +88,27 @@ public class MensajeDAO {
             }
         }
     }
+    // Agrega estos dos métodos dentro de la clase MensajeDAO
+
+    public long contarTotalMensajes() {
+        EntityManager em = getEntityManager();
+        try {
+            TypedQuery<Long> query = em.createQuery("SELECT COUNT(m) FROM Mensaje m", Long.class);
+            return query.getSingleResult();
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+
+    public List<Mensaje> buscarPaginado(int numeroPagina, int tamanoPagina) {
+        EntityManager em = getEntityManager();
+        try {
+            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m ORDER BY m.fechaProcesamiento DESC", Mensaje.class);
+            query.setFirstResult(numeroPagina * tamanoPagina); // Define desde dónde empezar
+            query.setMaxResults(tamanoPagina); // Define cuántos resultados traer
+            return query.getResultList();
+        } finally {
+            if (em != null) em.close();
+        }
+    }
 }
