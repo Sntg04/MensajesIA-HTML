@@ -116,7 +116,6 @@ async function handleUserTableActions(event) {
         const wantsToDeactivate = button.classList.contains('btn-deactivate');
         if (confirm(`¿Seguro que quieres ${wantsToDeactivate ? 'desactivar' : 'activar'} este usuario?`)) {
             try {
-                // Solo enviamos el campo que queremos cambiar
                 await fetchAPI(`/api/usuarios/${userId}`, { 
                     method: 'PUT', 
                     body: JSON.stringify({ activo: !wantsToDeactivate }) 
@@ -136,7 +135,7 @@ async function cargarUsuarios() {
         usuarios.forEach(u => {
             const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
             userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto||'N/A'}</td><td>${u.rol}</td>
-                <td><span class="status ${u.activo ? 'status-active' : 'status-inactive'}">${u.activo ? 'Sí' : 'No'}</span></td><td>${fecha}</td>
+                <td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td>
                 <td><button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
                     <button class="btn-action ${u.activo ? 'btn-deactivate' : 'btn-activate'}" data-id="${u.id}">${u.activo ? 'Desactivar' : 'Activar'}</button>
                 </td></tr>`;
@@ -146,7 +145,7 @@ async function cargarUsuarios() {
 
 async function cargarMensajes() {
     const messageList = document.getElementById('messageList');
-    messageList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>'; // Ahora son 7 columnas
+    messageList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
     try {
         const mensajes = await fetchAPI('/api/mensajes');
         messageList.innerHTML = '';
@@ -155,12 +154,10 @@ async function cargarMensajes() {
             return; 
         }
         mensajes.forEach(m => {
-            // Formatear la fecha del mensaje que viene del Excel
             let fechaMensaje = 'N/A';
             if (m.fechaHoraMensaje) {
                 fechaMensaje = new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
             }
-            
             messageList.innerHTML += `
                 <tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
                     <td>${m.id}</td>
@@ -176,6 +173,7 @@ async function cargarMensajes() {
         document.getElementById('messageError').textContent = `Error al cargar mensajes: ${error.message}`; 
     }
 }
+
 
 async function exportarMensajes() {
     const button = document.getElementById('export-excel-btn');
@@ -196,28 +194,42 @@ async function cargarEstadisticas() {
     statsContainer.innerHTML = 'Cargando...';
     try {
         const stats = await fetchAPI('/api/mensajes/stats');
-        statsContainer.innerHTML = `<p><strong>Total de Mensajes:</strong> ${stats.totalMensajes || 0}</p><p><strong>Confianza SPAM:</strong> ${((stats.confianzaPromedioSpam || 0) * 100).toFixed(2)}%</p><p><strong>Confianza NO SPAM:</strong> ${((stats.confianzaPromedioNoSpam || 0) * 100).toFixed(2)}%</p>`;
+        statsContainer.innerHTML = `<p><strong>Total de Mensajes:</strong> ${stats.totalMensajes || 0}</p>`;
     } catch (error) { statsContainer.innerHTML = `<p class="error-message">Error al cargar estadísticas.</p>`; }
 }
 
+// === FUNCIÓN CORREGIDA ===
 async function handleFileUpload(event) {
     event.preventDefault();
     const fileInput = document.getElementById('fileInput');
     const uploadMessage = document.getElementById('uploadMessage');
     const submitButton = event.target.querySelector('button');
-    if (fileInput.files.length === 0) { uploadMessage.textContent = 'Por favor, selecciona un archivo.'; return; }
-    
+
+    if (fileInput.files.length === 0) {
+        uploadMessage.textContent = 'Por favor, selecciona un archivo.';
+        return;
+    }
+
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
-    uploadMessage.textContent = 'Procesando archivo...';
+    uploadMessage.textContent = 'Subiendo archivo...';
     submitButton.disabled = true;
 
     try {
+        // La llamada a la API ahora recibe la respuesta inmediata y asíncrona
         const result = await fetchAPI('/api/mensajes/upload', { method: 'POST', body: formData });
-        uploadMessage.textContent = `Éxito: ${result.mensajesGuardados} mensajes guardados del lote ${result.loteId}.`;
-        fileInput.value = '';
-        cargarMensajes();
-        cargarEstadisticas();
-    } catch (error) { uploadMessage.textContent = `Error: ${error.message}`; }
-    finally { submitButton.disabled = false; }
+
+        // Mostramos el mensaje de confirmación que viene del servidor
+        uploadMessage.textContent = `${result.mensaje} ${result.detalle || ''}`;
+        
+        fileInput.value = ''; // Limpiamos el input del archivo
+
+        // No recargamos los mensajes inmediatamente. El usuario puede hacerlo
+        // manualmente o podemos implementar un refresco automático más adelante.
+        
+    } catch (error) {
+        uploadMessage.textContent = `Error: ${error.message}`;
+    } finally {
+        submitButton.disabled = false;
+    }
 }
