@@ -2,6 +2,7 @@ package com.ia.mensajes.agentemensajesia.resources;
 
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
+import com.ia.mensajes.agentemensajesia.model.PaginatedResponse;
 import com.ia.mensajes.agentemensajesia.services.ExcelExportService;
 import com.ia.mensajes.agentemensajesia.services.MensajeService;
 import jakarta.ws.rs.*;
@@ -22,49 +23,46 @@ import java.util.concurrent.ConcurrentHashMap;
 @Path("/mensajes")
 public class MensajeResource {
 
+    public static class JobStatus {
+        private String status;
+        private int progress;
+        public JobStatus(String status, int progress) { this.status = status; this.progress = progress; }
+        public String getStatus() { return status; }
+        public int getProgress() { return progress; }
+        public void setStatus(String status) { this.status = status; }
+        public void setProgress(int progress) { this.progress = progress; }
+    }
+
     private final MensajeService mensajeService = new MensajeService();
     private final ExcelExportService excelExportService = new ExcelExportService();
-    private static final Map<String, String> jobStatuses = new ConcurrentHashMap<>();
+    
+    public static final Map<String, JobStatus> jobStatuses = new ConcurrentHashMap<>();
 
     @POST
     @Path("/upload")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_JSON) // Asegura que la respuesta por defecto sea JSON
-    public Response uploadFile(
-            @FormDataParam("file") InputStream uploadedInputStream,
-            @FormDataParam("file") FormDataContentDisposition fileDetail) {
-
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response uploadFile(@FormDataParam("file") InputStream uploadedInputStream, @FormDataParam("file") FormDataContentDisposition fileDetail) {
         try {
             final byte[] fileBytes = uploadedInputStream.readAllBytes();
             final String loteId = java.util.UUID.randomUUID().toString();
-            jobStatuses.put(loteId, "PROCESANDO");
+            
+            jobStatuses.put(loteId, new JobStatus("INICIANDO", 0));
 
             new Thread(() -> {
                 try (InputStream safeInputStream = new ByteArrayInputStream(fileBytes)) {
-                    System.out.println("Iniciando procesamiento de archivo en segundo plano: " + fileDetail.getFileName());
                     mensajeService.procesarYGuardarMensajesDesdeExcel(safeInputStream, loteId);
-                    jobStatuses.put(loteId, "COMPLETADO");
-                    System.out.println("Procesamiento en segundo plano completado para lote: " + loteId);
+                    jobStatuses.put(loteId, new JobStatus("COMPLETADO", 100));
                 } catch (Exception e) {
-                    jobStatuses.put(loteId, "FALLIDO");
-                    System.err.println("Error en el procesamiento en segundo plano del lote: " + loteId);
+                    jobStatuses.put(loteId, new JobStatus("FALLIDO", 0));
                     e.printStackTrace();
                 }
             }).start();
 
-            Map<String, String> response = Map.of(
-                "mensaje", "Archivo recibido. El procesamiento ha comenzado.",
-                "loteId", loteId
-            );
-            
-            // --- INICIO DE LA SOLUCIÓN ---
-            // Añadimos .type(MediaType.APPLICATION_JSON) para garantizar el Content-Type
             return Response.status(Response.Status.ACCEPTED)
-                           .entity(response)
-                           .type(MediaType.APPLICATION_JSON) // Garantiza el encabezado correcto
+                           .entity(Map.of("mensaje", "Archivo recibido.", "loteId", loteId))
+                           .type(MediaType.APPLICATION_JSON)
                            .build();
-            // --- FIN DE LA SOLUCIÓN ---
-
         } catch (IOException e) {
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -78,11 +76,9 @@ public class MensajeResource {
     @Path("/lotes/{loteId}/status")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getLoteStatus(@PathParam("loteId") String loteId) {
-        String status = jobStatuses.getOrDefault(loteId, "NO_ENCONTRADO");
-        return Response.ok(Map.of("status", status)).build();
+        JobStatus status = jobStatuses.getOrDefault(loteId, new JobStatus("NO_ENCONTRADO", 0));
+        return Response.ok(status).build();
     }
-    
-    // En MensajeResource.java, reemplaza el método getAllMensajes
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -90,8 +86,7 @@ public class MensajeResource {
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("10") int size) {
         try {
-            // Llama al nuevo servicio de paginación
-            var paginatedResponse = mensajeService.obtenerMensajesPaginado(page, size);
+            PaginatedResponse<Mensaje> paginatedResponse = mensajeService.obtenerMensajesPaginado(page, size);
             return Response.ok(paginatedResponse).build();
         } catch(Exception e) {
             e.printStackTrace();

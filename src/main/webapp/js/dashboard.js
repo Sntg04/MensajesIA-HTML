@@ -276,25 +276,32 @@ async function cargarEstadisticas() {
     }
 }
 
+// En dashboard.js
+
 async function handleFileUpload(event) {
     event.preventDefault();
     const fileInput = document.getElementById('fileInput');
     const uploadMessage = document.getElementById('uploadMessage');
+    const progressContainer = document.getElementById('progress-container');
     const submitButton = event.target.querySelector('button');
+
     if (fileInput.files.length === 0) {
         uploadMessage.textContent = 'Por favor, selecciona un archivo.';
         return;
     }
+
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
-    uploadMessage.textContent = 'Subiendo archivo...';
+    uploadMessage.textContent = ''; // Limpiar mensaje anterior
+    progressContainer.style.display = 'block'; // Mostrar la barra de progreso
     submitButton.disabled = true;
+
     try {
         const result = await fetchAPI('/api/mensajes/upload', { method: 'POST', body: formData });
-        uploadMessage.textContent = `${result.mensaje} Verificando estado...`;
-        pollLoteStatus(result.loteId);
+        pollLoteStatus(result.loteId); // Iniciar polling
     } catch (error) {
         uploadMessage.textContent = `Error: ${error.message}`;
+        progressContainer.style.display = 'none'; // Ocultar barra en caso de error
     } finally {
         submitButton.disabled = false;
         fileInput.value = '';
@@ -303,33 +310,40 @@ async function handleFileUpload(event) {
 
 function pollLoteStatus(loteId) {
     const uploadMessage = document.getElementById('uploadMessage');
-    let pollCount = 0;
-    const maxPolls = 60;
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const progressContainer = document.getElementById('progress-container');
+    
     const intervalId = setInterval(async () => {
-        if (pollCount++ > maxPolls) {
-            clearInterval(intervalId);
-            uploadMessage.textContent = 'El procesamiento está tardando más de lo esperado. Los resultados aparecerán cuando finalice.';
-            return;
-        }
         try {
             const statusResult = await fetchAPI(`/api/mensajes/lotes/${loteId}/status`);
+            
+            // Actualizar la barra de progreso y el texto
+            progressBar.style.width = `${statusResult.progress}%`;
+            progressText.textContent = `${statusResult.progress}%`;
+
             if (statusResult.status === 'COMPLETADO') {
                 clearInterval(intervalId);
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
+                progressBar.style.backgroundColor = '#2ecc71'; // Color verde para éxito
                 setTimeout(() => {
                     cargarMensajes();
                     cargarEstadisticas();
+                    progressContainer.style.display = 'none'; // Ocultar barra
+                    progressBar.style.width = '0%'; // Resetear barra
+                    progressBar.style.backgroundColor = 'var(--accent-color)'; // Resetear color
                     uploadMessage.textContent = 'Tablas actualizadas.';
-                }, 1500);
+                }, 2000);
+
             } else if (statusResult.status === 'FALLIDO') {
                 clearInterval(intervalId);
                 uploadMessage.textContent = 'Error: El procesamiento del archivo en el servidor ha fallado.';
-            } else {
-                uploadMessage.textContent = `Procesando... (verificación ${pollCount})`;
+                progressBar.style.backgroundColor = '#e53935'; // Color rojo para error
             }
         } catch (error) {
             clearInterval(intervalId);
             uploadMessage.textContent = 'Error de conexión al verificar el estado del proceso.';
+            progressContainer.style.display = 'none';
         }
-    }, 1000);
+    }, 2000); // Preguntar cada 2 segundos
 }
