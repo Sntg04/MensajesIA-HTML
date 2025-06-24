@@ -37,168 +37,42 @@ function switchView(targetId) {
 }
 
 async function fetchAPI(url, options = {}) {
-    const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
-    if (!(options.body instanceof FormData)) {
-        defaultHeaders['Content-Type'] = 'application/json';
-    }
-    const config = { ...options, headers: { ...defaultHeaders, ...options.headers } };
-    const response = await fetch(url, config);
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error del servidor sin detalles.' }));
-        throw new Error(errorData.error || `Error HTTP ${response.status}`);
-    }
-    if (response.status === 204) return { success: true };
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-        return response.json();
-    }
-    return response.blob();
+    // ... (esta función no necesita cambios)
 }
 
 function showUserModal(user = null) {
-    const form = document.getElementById('user-form'); form.reset();
-    document.getElementById('form-error').textContent = '';
-    const isEditing = !!user;
-    document.getElementById('modal-title').textContent = isEditing ? 'Editar Usuario' : 'Crear Usuario';
-    document.getElementById('user-id').value = isEditing ? user.id : '';
-    document.getElementById('username').value = isEditing ? user.username : '';
-    document.getElementById('nombreCompleto').value = isEditing ? user.nombreCompleto || '' : '';
-    document.getElementById('rol').value = isEditing ? user.rol : 'calidad';
-    document.getElementById('password').placeholder = isEditing ? 'Dejar en blanco para no cambiar' : 'Contraseña requerida';
-    document.getElementById('username').disabled = isEditing;
-    document.getElementById('user-modal').style.display = 'flex';
+    // ... (esta función no necesita cambios)
 }
 
-function hideUserModal() { document.getElementById('user-modal').style.display = 'none'; }
+function hideUserModal() { 
+    // ... (esta función no necesita cambios)
+}
 
 async function handleUserFormSubmit(event) {
-    event.preventDefault();
-    const id = document.getElementById('user-id').value;
-    const isEditing = !!id;
-    const password = document.getElementById('password').value;
-
-    const userData = {
-        nombreCompleto: document.getElementById('nombreCompleto').value,
-        rol: document.getElementById('rol').value
-    };
-    
-    if (!isEditing) {
-        userData.username = document.getElementById('username').value;
-    }
-    if (password) {
-        userData.passwordHash = password;
-    }
-
-    const url = isEditing ? `/api/usuarios/${id}` : '/api/usuarios';
-    const method = isEditing ? 'PUT' : 'POST';
-
-    try {
-        await fetchAPI(url, { method, body: JSON.stringify(userData) });
-        hideUserModal();
-        cargarUsuarios();
-    } catch (error) { document.getElementById('form-error').textContent = `Error: ${error.message}`; }
+    // ... (esta función no necesita cambios)
 }
 
 async function handleUserTableActions(event) {
-    const button = event.target.closest('button.btn-action');
-    if (!button) return;
-    const userId = button.dataset.id;
-
-    if (button.matches('.btn-edit')) {
-        try {
-            const user = await fetchAPI(`/api/usuarios/${userId}`);
-            showUserModal(user);
-        } catch (error) { alert(`Error al cargar datos del usuario: ${error.message}`); }
-        return;
-    }
-
-    if (button.matches('.btn-deactivate, .btn-activate')) {
-        const wantsToDeactivate = button.classList.contains('btn-deactivate');
-        if (confirm(`¿Seguro que quieres ${wantsToDeactivate ? 'desactivar' : 'activar'} este usuario?`)) {
-            try {
-                await fetchAPI(`/api/usuarios/${userId}`, { 
-                    method: 'PUT', 
-                    body: JSON.stringify({ activo: !wantsToDeactivate }) 
-                });
-                cargarUsuarios();
-            } catch (error) { alert(`Error: ${error.message}`); }
-        }
-    }
+    // ... (esta función no necesita cambios)
 }
 
 async function cargarUsuarios() {
-    const userList = document.getElementById('userList');
-    userList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
-    try {
-        const usuarios = await fetchAPI('/api/usuarios');
-        userList.innerHTML = '';
-        usuarios.forEach(u => {
-            const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
-            userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto||'N/A'}</td><td>${u.rol}</td>
-                <td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td>
-                <td><button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
-                    <button class="btn-action ${u.activo ? 'btn-deactivate' : 'btn-activate'}" data-id="${u.id}">${u.activo ? 'Desactivar' : 'Activar'}</button>
-                </td></tr>`;
-        });
-    } catch (error) { document.getElementById('userError').textContent = `Error al cargar usuarios: ${error.message}`; }
+    // ... (esta función no necesita cambios)
 }
 
 async function cargarMensajes() {
-    const messageList = document.getElementById('messageList');
-    messageList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
-    try {
-        const mensajes = await fetchAPI('/api/mensajes');
-        messageList.innerHTML = '';
-        if(mensajes.length === 0){ 
-            messageList.innerHTML = '<tr><td colspan="7">No hay mensajes para mostrar. Sube un archivo.</td></tr>'; 
-            return; 
-        }
-        mensajes.forEach(m => {
-            let fechaMensaje = 'N/A';
-            if (m.fechaHoraMensaje) {
-                fechaMensaje = new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
-            }
-            messageList.innerHTML += `
-                <tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
-                    <td>${m.id}</td>
-                    <td>${m.nombreAsesor || 'N/A'}</td>
-                    <td>${m.aplicacion || 'N/A'}</td>
-                    <td>${m.texto}</td>
-                    <td>${m.clasificacion}</td>
-                    <td>${m.observacion || 'N/A'}</td>
-                    <td>${fechaMensaje}</td>
-                </tr>`;
-        });
-    } catch (error) { 
-        document.getElementById('messageError').textContent = `Error al cargar mensajes: ${error.message}`; 
-    }
+    // ... (esta función no necesita cambios)
 }
 
-
 async function exportarMensajes() {
-    const button = document.getElementById('export-excel-btn');
-    button.textContent = 'Generando...'; button.disabled = true;
-    try {
-        const blob = await fetchAPI('/api/mensajes/export');
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none'; a.href = url;
-        a.download = `Reporte_Mensajes_${new Date().toISOString().split('T')[0]}.xlsx`;
-        document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); a.remove();
-    } catch (error) { alert(`Error al exportar: ${error.message}`); }
-    finally { button.textContent = 'Exportar a Excel'; button.disabled = false; }
+    // ... (esta función no necesita cambios)
 }
 
 async function cargarEstadisticas() {
-    const statsContainer = document.getElementById('messageStats');
-    statsContainer.innerHTML = 'Cargando...';
-    try {
-        const stats = await fetchAPI('/api/mensajes/stats');
-        statsContainer.innerHTML = `<p><strong>Total de Mensajes:</strong> ${stats.totalMensajes || 0}</p>`;
-    } catch (error) { statsContainer.innerHTML = `<p class="error-message">Error al cargar estadísticas.</p>`; }
+    // ... (esta función no necesita cambios)
 }
 
-// === FUNCIÓN CORREGIDA ===
+// === FUNCIÓN ACTUALIZADA ===
 async function handleFileUpload(event) {
     event.preventDefault();
     const fileInput = document.getElementById('fileInput');
@@ -216,20 +90,56 @@ async function handleFileUpload(event) {
     submitButton.disabled = true;
 
     try {
-        // La llamada a la API ahora recibe la respuesta inmediata y asíncrona
         const result = await fetchAPI('/api/mensajes/upload', { method: 'POST', body: formData });
-
-        // Mostramos el mensaje de confirmación que viene del servidor
-        uploadMessage.textContent = `${result.mensaje} ${result.detalle || ''}`;
         
-        fileInput.value = ''; // Limpiamos el input del archivo
-
-        // No recargamos los mensajes inmediatamente. El usuario puede hacerlo
-        // manualmente o podemos implementar un refresco automático más adelante.
+        uploadMessage.textContent = `${result.mensaje} Verificando estado...`;
         
+        // Iniciar el polling para verificar el estado del lote
+        pollLoteStatus(result.loteId);
+
     } catch (error) {
         uploadMessage.textContent = `Error: ${error.message}`;
     } finally {
         submitButton.disabled = false;
+        fileInput.value = '';
     }
+}
+
+// === NUEVA FUNCIÓN PARA EL POLLING ===
+function pollLoteStatus(loteId) {
+    const uploadMessage = document.getElementById('uploadMessage');
+    let pollCount = 0;
+    const maxPolls = 60; // Máximo 5 minutos de polling (60 * 5 segundos)
+
+    const intervalId = setInterval(async () => {
+        if (pollCount++ > maxPolls) {
+            clearInterval(intervalId);
+            uploadMessage.textContent = 'El procesamiento está tardando más de lo esperado. Los resultados aparecerán cuando finalice.';
+            return;
+        }
+
+        try {
+            const statusResult = await fetchAPI(`/api/mensajes/lotes/${loteId}/status`);
+            
+            if (statusResult.status === 'COMPLETADO') {
+                clearInterval(intervalId);
+                uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
+                // Usamos un pequeño delay para que el usuario pueda leer el mensaje final
+                setTimeout(() => {
+                    cargarMensajes();
+                    cargarEstadisticas();
+                    uploadMessage.textContent = 'Tablas actualizadas.';
+                }, 1500);
+            } else if (statusResult.status === 'FALLIDO') {
+                clearInterval(intervalId);
+                uploadMessage.textContent = 'Error: El procesamiento del archivo en el servidor ha fallado.';
+            } else {
+                // Sigue procesando, actualizamos el mensaje para dar feedback
+                uploadMessage.textContent = `Procesando... (verificación ${pollCount})`;
+            }
+        } catch (error) {
+            clearInterval(intervalId);
+            uploadMessage.textContent = 'Error de conexión al verificar el estado del proceso.';
+        }
+    }, 5000); // Preguntar cada 5 segundos
 }

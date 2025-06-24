@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class MensajeService {
@@ -25,11 +24,11 @@ public class MensajeService {
      * Procesa un archivo Excel, clasifica los mensajes en paralelo para mayor velocidad,
      * y los guarda en la base de datos.
      * @param inputStream El stream de datos del archivo .xlsx.
+     * @param loteId El identificador único para el lote de procesamiento.
      * @return Una lista de las entidades Mensaje que fueron guardadas.
      * @throws Exception Si ocurre un error al leer o procesar el archivo.
      */
-    public List<Mensaje> procesarYGuardarMensajesDesdeExcel(InputStream inputStream) throws Exception {
-        String loteId = UUID.randomUUID().toString();
+    public List<Mensaje> procesarYGuardarMensajesDesdeExcel(InputStream inputStream, String loteId) throws Exception {
 
         // --- PASO 1: LEER TODAS LAS FILAS DEL EXCEL EN MEMORIA ---
         // Esto es muy rápido porque solo es lectura, no hay procesamiento.
@@ -49,28 +48,28 @@ public class MensajeService {
         // --- PASO 2: PROCESAR LAS FILAS EN PARALELO ---
         // Usamos parallelStream() para dividir el trabajo en múltiples hilos.
         // La clasificación, que es la parte más lenta, ahora ocurre simultáneamente.
-        System.out.println("Iniciando procesamiento en paralelo de " + rows.size() + " filas...");
+        System.out.println("Iniciando procesamiento en paralelo de " + rows.size() + " filas para el lote: " + loteId);
         long startTime = System.currentTimeMillis();
 
         List<Mensaje> mensajesProcesados = rows.parallelStream()
             .map(row -> {
-                String textoMensaje = getCellValueAsString(row.getCell(7)); // Columna H
-
-                // Si no hay texto, no procesamos esta fila.
-                if (textoMensaje == null || textoMensaje.isEmpty()) {
-                    return null;
-                }
-
+                // Extraer datos de las columnas específicas
                 String app = getCellValueAsString(row.getCell(0)); // Columna A
                 String idCliente = getCellValueAsString(row.getCell(1)); // Columna B
+                String textoMensaje = getCellValueAsString(row.getCell(7)); // Columna H
                 String asesor = getCellValueAsString(row.getCell(9)); // Columna J
                 LocalDateTime fechaHora = getCellLocalDateTime(row.getCell(10)); // Columna K
 
+                // Si no hay texto de mensaje, no procesamos esta fila.
+                if (textoMensaje == null || textoMensaje.isEmpty()) {
+                    return null;
+                }
+                
                 // Obtenemos una instancia del clasificador (es seguro en paralelo gracias al Singleton)
                 ClasificadorMensajes clasificador = ClasificadorMensajes.getInstance();
                 ResultadoClasificacion resultado = clasificador.clasificar(textoMensaje);
 
-                // Creamos la entidad Mensaje
+                // Creamos la entidad Mensaje con todos los datos
                 Mensaje nuevoMensaje = new Mensaje();
                 nuevoMensaje.setAplicacion(app);
                 nuevoMensaje.setIdCliente(idCliente);
