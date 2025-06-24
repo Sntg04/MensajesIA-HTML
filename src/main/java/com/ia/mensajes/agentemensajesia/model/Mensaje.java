@@ -1,17 +1,18 @@
 package com.ia.mensajes.agentemensajesia.model;
 
 import jakarta.persistence.*;
+import java.io.Serializable;
 import java.util.Date;
 
 @Entity
 @Table(name = "mensajes")
-public class Mensaje {
+public class Mensaje implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "texto", length = 1000, nullable = false)
+    @Column(name = "texto", columnDefinition = "TEXT", nullable = false)
     private String texto;
 
     @Column(name = "clasificacion", length = 50)
@@ -27,7 +28,7 @@ public class Mensaje {
     @Column(name = "lote", length = 100)
     private String lote;
 
-    // --- GETTERS Y SETTERS ---
+    // --- Getters y Setters ---
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
     public String getTexto() { return texto; }

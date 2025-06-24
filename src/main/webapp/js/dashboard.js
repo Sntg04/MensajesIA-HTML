@@ -47,7 +47,12 @@ async function fetchAPI(url, options = {}) {
         const errorData = await response.json().catch(() => ({ error: 'Error del servidor sin detalles.' }));
         throw new Error(errorData.error || `Error HTTP ${response.status}`);
     }
-    return response.status === 204 ? { success: true } : response.json();
+    if (response.status === 204) return { success: true };
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+        return response.json();
+    }
+    return response.blob();
 }
 
 function showUserModal(user = null) {
@@ -70,19 +75,23 @@ async function handleUserFormSubmit(event) {
     event.preventDefault();
     const id = document.getElementById('user-id').value;
     const isEditing = !!id;
+    const password = document.getElementById('password').value;
+
     const userData = {
-        username: document.getElementById('username').value,
         nombreCompleto: document.getElementById('nombreCompleto').value,
-        rol: document.getElementById('rol').value,
-        passwordHash: document.getElementById('password').value
+        rol: document.getElementById('rol').value
     };
-    if (isEditing && !userData.passwordHash) delete userData.passwordHash;
-    if (!isEditing && !userData.passwordHash) {
-        document.getElementById('form-error').textContent = 'La contraseña es requerida.';
-        return;
+    
+    if (!isEditing) {
+        userData.username = document.getElementById('username').value;
     }
+    if (password) {
+        userData.passwordHash = password;
+    }
+
     const url = isEditing ? `/api/usuarios/${id}` : '/api/usuarios';
     const method = isEditing ? 'PUT' : 'POST';
+
     try {
         await fetchAPI(url, { method, body: JSON.stringify(userData) });
         hideUserModal();
@@ -94,16 +103,24 @@ async function handleUserTableActions(event) {
     const button = event.target.closest('button.btn-action');
     if (!button) return;
     const userId = button.dataset.id;
+
     if (button.matches('.btn-edit')) {
-        const user = await fetchAPI(`/api/usuarios/${userId}`);
-        showUserModal(user);
+        try {
+            const user = await fetchAPI(`/api/usuarios/${userId}`);
+            showUserModal(user);
+        } catch (error) { alert(`Error al cargar datos del usuario: ${error.message}`); }
+        return;
     }
+
     if (button.matches('.btn-deactivate, .btn-activate')) {
-        const isActive = button.classList.contains('btn-deactivate');
-        if (confirm(`¿Seguro que quieres ${isActive ? 'desactivar' : 'activar'} este usuario?`)) {
+        const wantsToDeactivate = button.classList.contains('btn-deactivate');
+        if (confirm(`¿Seguro que quieres ${wantsToDeactivate ? 'desactivar' : 'activar'} este usuario?`)) {
             try {
-                const user = await fetchAPI(`/api/usuarios/${userId}`);
-                await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ ...user, activo: !isActive }) });
+                // Solo enviamos el campo que queremos cambiar
+                await fetchAPI(`/api/usuarios/${userId}`, { 
+                    method: 'PUT', 
+                    body: JSON.stringify({ activo: !wantsToDeactivate }) 
+                });
                 cargarUsuarios();
             } catch (error) { alert(`Error: ${error.message}`); }
         }
@@ -119,12 +136,12 @@ async function cargarUsuarios() {
         usuarios.forEach(u => {
             const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
             userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto||'N/A'}</td><td>${u.rol}</td>
-                <td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td>
+                <td><span class="status ${u.activo ? 'status-active' : 'status-inactive'}">${u.activo ? 'Sí' : 'No'}</span></td><td>${fecha}</td>
                 <td><button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
                     <button class="btn-action ${u.activo ? 'btn-deactivate' : 'btn-activate'}" data-id="${u.id}">${u.activo ? 'Desactivar' : 'Activar'}</button>
                 </td></tr>`;
         });
-    } catch (error) { document.getElementById('userError').textContent = `Error: ${error.message}`; }
+    } catch (error) { document.getElementById('userError').textContent = `Error al cargar usuarios: ${error.message}`; }
 }
 
 async function cargarMensajes() {
@@ -133,26 +150,23 @@ async function cargarMensajes() {
     try {
         const mensajes = await fetchAPI('/api/mensajes');
         messageList.innerHTML = '';
-        if(mensajes.length === 0){ messageList.innerHTML = '<tr><td colspan="5">No hay mensajes.</td></tr>'; return; }
+        if(mensajes.length === 0){ messageList.innerHTML = '<tr><td colspan="5">No hay mensajes para mostrar. Sube un archivo.</td></tr>'; return; }
         mensajes.forEach(m => {
-            const fecha = new Date(m.fechaProcesamiento).toLocaleString('es-ES');
-            messageList.innerHTML += `<tr><td>${m.id}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${(m.confianza * 100).toFixed(2)}%</td><td>${fecha}</td></tr>`;
+            const fecha = new Date(m.fechaProcesamiento).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
+            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${(m.confianza * 100).toFixed(2)}%</td><td>${fecha}</td></tr>`;
         });
-    } catch (error) { document.getElementById('messageError').textContent = `Error: ${error.message}`; }
+    } catch (error) { document.getElementById('messageError').textContent = `Error al cargar mensajes: ${error.message}`; }
 }
 
 async function exportarMensajes() {
     const button = document.getElementById('export-excel-btn');
     button.textContent = 'Generando...'; button.disabled = true;
     try {
-        const response = await fetch('/api/mensajes/export', { method: 'GET', headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` } });
-        if (!response.ok) throw new Error('Error del servidor al generar el archivo.');
-        const blob = await response.blob();
+        const blob = await fetchAPI('/api/mensajes/export');
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none'; a.href = url;
-        const disposition = response.headers.get('content-disposition');
-        a.download = disposition?.match(/filename="(.+?)"/)?.[1] || 'reporte_mensajes.xlsx';
+        a.download = `Reporte_Mensajes_${new Date().toISOString().split('T')[0]}.xlsx`;
         document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); a.remove();
     } catch (error) { alert(`Error al exportar: ${error.message}`); }
     finally { button.textContent = 'Exportar a Excel'; button.disabled = false; }
@@ -171,19 +185,20 @@ async function handleFileUpload(event) {
     event.preventDefault();
     const fileInput = document.getElementById('fileInput');
     const uploadMessage = document.getElementById('uploadMessage');
-    if (fileInput.files.length === 0) { uploadMessage.textContent = 'Selecciona un archivo.'; return; }
+    const submitButton = event.target.querySelector('button');
+    if (fileInput.files.length === 0) { uploadMessage.textContent = 'Por favor, selecciona un archivo.'; return; }
+    
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
-    uploadMessage.textContent = 'Procesando...';
+    uploadMessage.textContent = 'Procesando archivo...';
+    submitButton.disabled = true;
+
     try {
-        const response = await fetch('/api/mensajes/upload', {
-            method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }, body: formData
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Error en la subida.');
-        uploadMessage.textContent = `Éxito: ${result.mensajesGuardados} mensajes guardados.`;
+        const result = await fetchAPI('/api/mensajes/upload', { method: 'POST', body: formData });
+        uploadMessage.textContent = `Éxito: ${result.mensajesGuardados} mensajes guardados del lote ${result.loteId}.`;
         fileInput.value = '';
         cargarMensajes();
         cargarEstadisticas();
     } catch (error) { uploadMessage.textContent = `Error: ${error.message}`; }
+    finally { submitButton.disabled = false; }
 }

@@ -31,22 +31,24 @@ public class MensajeService {
             Iterator<Row> rowIterator = sheet.iterator();
 
             if (rowIterator.hasNext()) {
-                rowIterator.next(); // Omitir encabezado
+                rowIterator.next(); // Omitir la fila de encabezado
             }
 
             while (rowIterator.hasNext()) {
                 Row row = rowIterator.next();
-                Cell cell = row.getCell(0);
+                Cell cell = row.getCell(0); // Suponiendo que los mensajes están en la primera columna
                 if (cell != null) {
                     String textoMensaje = cell.getStringCellValue();
                     if (textoMensaje != null && !textoMensaje.trim().isEmpty()) {
                         ResultadoClasificacion resultado = clasificador.clasificar(textoMensaje);
+                        
                         Mensaje nuevoMensaje = new Mensaje();
                         nuevoMensaje.setTexto(textoMensaje);
                         nuevoMensaje.setClasificacion(resultado.getCategoria());
                         nuevoMensaje.setConfianza(resultado.getConfianza());
                         nuevoMensaje.setFechaProcesamiento(new Date());
                         nuevoMensaje.setLote(loteId);
+                        
                         mensajesAGuardar.add(nuevoMensaje);
                     }
                 }
@@ -56,7 +58,6 @@ public class MensajeService {
         if (!mensajesAGuardar.isEmpty()) {
             mensajeDAO.guardarVarios(mensajesAGuardar);
         }
-
         return mensajesAGuardar;
     }
 
@@ -66,13 +67,5 @@ public class MensajeService {
 
     public EstadisticaMensaje calcularEstadisticas() {
         return mensajeDAO.getEstadisticas();
-    }
-
-    public List<Mensaje> obtenerAlertasPorLote(String loteId) {
-        return mensajeDAO.listarAlertasPorLote(loteId);
-    }
-
-    public List<Mensaje> obtenerMensajesPorLote(String loteId) {
-        return mensajeDAO.listarPorLote(loteId);
     }
 }

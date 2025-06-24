@@ -11,18 +11,15 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class ExcelExportService {
     
     public ByteArrayInputStream exportarMensajesAExcel(List<Mensaje> mensajes) throws IOException {
-        String[] columns = {"ID", "Texto del Mensaje", "Clasificación", "Confianza", "Fecha de Procesamiento"};
+        String[] columns = {"ID", "Texto del Mensaje", "Clasificación", "Confianza", "Fecha de Procesamiento", "Lote"};
         
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Mensajes Procesados");
 
             Font headerFont = workbook.createFont();
             headerFont.setBold(true);
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
             CellStyle headerCellStyle = workbook.createCellStyle();
             headerCellStyle.setFont(headerFont);
-            headerCellStyle.setFillForegroundColor(IndexedColors.GREY_80_PERCENT.getIndex());
-            headerCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < columns.length; i++) {
@@ -31,6 +28,10 @@ public class ExcelExportService {
                 cell.setCellStyle(headerCellStyle);
             }
             
+            CellStyle dateCellStyle = workbook.createCellStyle();
+            CreationHelper createHelper = workbook.getCreationHelper();
+            dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy HH:mm:ss"));
+
             int rowIdx = 1;
             for (Mensaje mensaje : mensajes) {
                 Row row = sheet.createRow(rowIdx++);
@@ -41,12 +42,10 @@ public class ExcelExportService {
                 
                 Cell dateCell = row.createCell(4);
                 if (mensaje.getFechaProcesamiento() != null) {
-                     CellStyle dateCellStyle = workbook.createCellStyle();
-                     CreationHelper createHelper = workbook.getCreationHelper();
-                     dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy HH:mm:ss"));
                      dateCell.setCellValue(mensaje.getFechaProcesamiento());
                      dateCell.setCellStyle(dateCellStyle);
                 }
+                row.createCell(5).setCellValue(mensaje.getLote());
             }
 
             for(int i = 0; i < columns.length; i++) {
