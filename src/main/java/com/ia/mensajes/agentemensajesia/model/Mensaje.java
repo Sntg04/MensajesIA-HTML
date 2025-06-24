@@ -24,7 +24,6 @@ public class Mensaje {
     @Column(name = "fecha_procesamiento", nullable = false)
     private Date fechaProcesamiento;
 
-    // --- CAMPO AÑADIDO PARA IDENTIFICAR LA CARGA DE ARCHIVOS ---
     @Column(name = "lote", length = 100)
     private String lote;
 
