@@ -12,30 +12,39 @@ import java.util.List;
 public class InitialDataSeeder implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        System.out.println("INICIADOR: La aplicación web ha arrancado.");
+        System.out.println("INICIADOR: La aplicación web ha arrancado. Verificando datos iniciales...");
         try {
-            JPAUtil.getEntityManagerFactory();
+            // Inicializar la conexión a la BD es lo primero
+            JPAUtil.getEntityManagerFactory(); 
+            
             UsuarioService usuarioService = new UsuarioService();
             List<Usuario> usuarios = usuarioService.obtenerTodosLosUsuarios();
+            
             if (usuarios == null || usuarios.isEmpty()) {
                 System.out.println(">>> La base de datos está vacía. Creando usuario 'admin' por defecto...");
                 Usuario admin = new Usuario();
                 admin.setUsername("admin");
-                admin.setPasswordHash("admin123");
+                // Importante: El servicio se encargará de hashear esto
+                admin.setPasswordHash("admin123"); 
                 admin.setRol("admin");
                 admin.setNombreCompleto("Administrador del Sistema");
+                
                 usuarioService.crearUsuario(admin);
                 System.out.println(">>> ¡Usuario 'admin' creado exitosamente!");
             } else {
                 System.out.println(">>> La base de datos ya contiene usuarios.");
             }
         } catch (Exception e) {
-             System.err.println("!!! ERROR CRÍTICO DURANTE LA CREACIÓN DEL USUARIO ADMIN !!!");
+             System.err.println("!!! ERROR CRÍTICO DURANTE LA INICIALIZACIÓN DE DATOS !!!");
              e.printStackTrace();
+             // Lanzar una RuntimeException puede ayudar a que el error sea más visible en los logs del servidor
+             throw new RuntimeException("Fallo en InitialDataSeeder", e);
         }
     }
+
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         JPAUtil.shutdown();
+        System.out.println("INICIADOR: La aplicación se ha detenido. EntityManagerFactory cerrado.");
     }
 }

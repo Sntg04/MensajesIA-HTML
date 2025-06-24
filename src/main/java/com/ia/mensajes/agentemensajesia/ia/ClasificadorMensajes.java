@@ -1,5 +1,6 @@
 package com.ia.mensajes.agentemensajesia.ia;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
 import java.util.Arrays;
@@ -14,10 +15,11 @@ import opennlp.tools.tokenize.TokenizerModel;
 
 public class ClasificadorMensajes {
 
+    private static ClasificadorMensajes instance;
     private TokenizerME tokenizer;
     private POSTaggerME posTagger;
     private LemmatizerME lemmatizer;
-    
+
     private static final Set<String> PALABRAS_ALERTA_LEMAS = new HashSet<>(Arrays.asList(
             "urgente", "importante", "premio", "ganador", "oferta", "gratis",
             "promocion", "descuento", "exclusivo", "limitado", "click", "aqui",
@@ -25,25 +27,37 @@ public class ClasificadorMensajes {
             "seguridad", "suspension", "factura", "deuda", "fraude", "hack"
     ));
 
-    public void cargarModelos() {
+    private ClasificadorMensajes() {
         try {
             System.out.println("Cargando modelos de OpenNLP...");
-            InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
-            TokenizerModel tokenModel = new TokenizerModel(tokenModelIn);
-            this.tokenizer = new TokenizerME(tokenModel);
+            try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
+                 InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
+                 InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin")) {
 
-            InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
-            POSModel posModel = new POSModel(posModelIn);
-            this.posTagger = new POSTaggerME(posModel);
+                if (tokenModelIn == null) throw new IOException("No se encontró el modelo de tokenizer: /models/es/es-token.bin");
+                TokenizerModel tokenModel = new TokenizerModel(tokenModelIn);
+                this.tokenizer = new TokenizerME(tokenModel);
 
-            InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin");
-            LemmatizerModel lemmaModel = new LemmatizerModel(lemmaModelIn);
-            this.lemmatizer = new LemmatizerME(lemmaModel);
+                if (posModelIn == null) throw new IOException("No se encontró el modelo POS: /models/es/es-pos-maxent.bin");
+                POSModel posModel = new POSModel(posModelIn);
+                this.posTagger = new POSTaggerME(posModel);
+
+                if (lemmaModelIn == null) throw new IOException("No se encontró el modelo de lematización: /models/es/es-lemmatizer.bin");
+                LemmatizerModel lemmaModel = new LemmatizerModel(lemmaModelIn);
+                this.lemmatizer = new LemmatizerME(lemmaModel);
+            }
             System.out.println("Modelos cargados exitosamente.");
         } catch (Exception e) {
             System.err.println("Error al cargar los modelos de NLP. Asegúrate de que los archivos .bin estén en src/main/resources/models/es/");
             throw new RuntimeException("Fallo al cargar los modelos de NLP.", e);
         }
+    }
+
+    public static synchronized ClasificadorMensajes getInstance() {
+        if (instance == null) {
+            instance = new ClasificadorMensajes();
+        }
+        return instance;
     }
 
     private String normalizar(String texto) {
@@ -67,11 +81,9 @@ public class ClasificadorMensajes {
 
         for (String lema : lemas) {
             if (PALABRAS_ALERTA_LEMAS.contains(lema)) {
-                // Devolver confianza 0.9 (90%) si encuentra una palabra de alerta
                 return new ResultadoClasificacion("Alerta", 0.9);
             }
         }
-        // Devolver confianza 1.0 (100%) si es un mensaje bueno
         return new ResultadoClasificacion("Bueno", 1.0);
     }
 }
