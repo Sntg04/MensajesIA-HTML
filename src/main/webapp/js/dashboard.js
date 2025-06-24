@@ -8,15 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-/**
- * Configura la interfaz de usuario inicial, muestra el mensaje de bienvenida
- * y carga los datos iniciales.
- */
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
     const userRole = localStorage.getItem('userRole');
-
-    // Muestra/oculta la pestaña de usuarios según el rol
     if (userRole === 'admin') {
         switchView('usuarios');
         cargarUsuarios();
@@ -28,20 +22,9 @@ function setupUI() {
     cargarEstadisticas();
 }
 
-/**
- * Asigna todos los event listeners a los botones y elementos interactivos.
- */
 function setupEventListeners() {
-    document.querySelector('.sidebar-nav').addEventListener('click', e => {
-        if (e.target.matches('.nav-link')) {
-            e.preventDefault();
-            switchView(e.target.dataset.target);
-        }
-    });
-    document.getElementById('logoutButton').addEventListener('click', () => {
-        localStorage.clear();
-        window.location.href = 'index.html';
-    });
+    document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
+    document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
     document.getElementById('export-excel-btn').addEventListener('click', exportarMensajes);
     document.getElementById('show-create-user-modal').addEventListener('click', () => showUserModal());
     document.getElementById('cancel-user-modal').addEventListener('click', hideUserModal);
@@ -50,10 +33,6 @@ function setupEventListeners() {
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
 }
 
-/**
- * Cambia la vista activa en el panel principal.
- * @param {string} targetId - El ID de la sección a mostrar.
- */
 function switchView(targetId) {
     document.querySelectorAll('.content-section.active').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
@@ -61,12 +40,6 @@ function switchView(targetId) {
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
 }
 
-/**
- * Función central para realizar llamadas a la API, incluyendo el token de autorización.
- * @param {string} url - La URL del endpoint de la API.
- * @param {object} options - Opciones para la petición fetch (method, body, etc.).
- * @returns {Promise<any>} - La respuesta de la API, parseada como JSON o Blob.
- */
 async function fetchAPI(url, options = {}) {
     const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
     if (!(options.body instanceof FormData)) {
@@ -86,13 +59,8 @@ async function fetchAPI(url, options = {}) {
     return response.blob();
 }
 
-/**
- * Muestra el modal para crear o editar un usuario.
- * @param {object|null} user - El objeto de usuario si se está editando, o null si se está creando.
- */
 function showUserModal(user = null) {
-    const form = document.getElementById('user-form');
-    form.reset();
+    const form = document.getElementById('user-form'); form.reset();
     document.getElementById('form-error').textContent = '';
     const isEditing = !!user;
     document.getElementById('modal-title').textContent = isEditing ? 'Editar Usuario' : 'Crear Usuario';
@@ -105,91 +73,62 @@ function showUserModal(user = null) {
     document.getElementById('user-modal').style.display = 'flex';
 }
 
-function hideUserModal() {
-    document.getElementById('user-modal').style.display = 'none';
-}
+function hideUserModal() { document.getElementById('user-modal').style.display = 'none'; }
 
-/**
- * Gestiona el envío del formulario de usuario (tanto para crear como para editar).
- */
 async function handleUserFormSubmit(event) {
     event.preventDefault();
     const id = document.getElementById('user-id').value;
     const isEditing = !!id;
     const password = document.getElementById('password').value;
-
     const userData = {
         nombreCompleto: document.getElementById('nombreCompleto').value,
         rol: document.getElementById('rol').value
     };
-    
     if (!isEditing) {
         userData.username = document.getElementById('username').value;
     }
     if (password) {
         userData.passwordHash = password;
     }
-
     const url = isEditing ? `/api/usuarios/${id}` : '/api/usuarios';
     const method = isEditing ? 'PUT' : 'POST';
-
     try {
         await fetchAPI(url, { method, body: JSON.stringify(userData) });
         hideUserModal();
         cargarUsuarios();
-    } catch (error) {
-        document.getElementById('form-error').textContent = `Error: ${error.message}`;
-    }
+    } catch (error) { document.getElementById('form-error').textContent = `Error: ${error.message}`; }
 }
 
-/**
- * Gestiona los clics en los botones de acción de la tabla de usuarios (Editar, Activar, Desactivar).
- */
 async function handleUserTableActions(event) {
     const button = event.target.closest('button.btn-action');
     if (!button) return;
     const userId = button.dataset.id;
-
     if (button.matches('.btn-edit')) {
         try {
             const user = await fetchAPI(`/api/usuarios/${userId}`);
             showUserModal(user);
-        } catch (error) {
-            alert(`Error al cargar datos del usuario: ${error.message}`);
-        }
+        } catch (error) { alert(`Error al cargar datos del usuario: ${error.message}`); }
         return;
     }
-
     if (button.matches('.btn-deactivate')) {
         if (confirm('¿Seguro que quieres DESACTIVAR este usuario?')) {
             try {
                 await fetchAPI(`/api/usuarios/${userId}/desactivar`, { method: 'DELETE' });
                 cargarUsuarios();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            } catch (error) { alert(`Error: ${error.message}`); }
         }
         return;
     }
-
     if (button.matches('.btn-activate')) {
         if (confirm('¿Seguro que quieres ACTIVAR este usuario?')) {
             try {
-                await fetchAPI(`/api/usuarios/${userId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ activo: true })
-                });
+                await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ activo: true }) });
                 cargarUsuarios();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            } catch (error) { alert(`Error: ${error.message}`); }
         }
     }
 }
 
-/**
- * Carga y renderiza la lista de usuarios en la tabla.
- */
 async function cargarUsuarios() {
     const userList = document.getElementById('userList');
     userList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
@@ -202,22 +141,11 @@ async function cargarUsuarios() {
         }
         usuarios.forEach(u => {
             const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
-            userList.innerHTML += `
-                <tr>
-                    <td>${u.id}</td>
-                    <td>${u.username}</td>
-                    <td>${u.nombreCompleto || 'N/A'}</td>
-                    <td>${u.rol}</td>
-                    <td>${u.activo ? 'Sí' : 'No'}</td>
-                    <td>${fecha}</td>
-                    <td>
-                        <button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
-                        ${u.activo
-                            ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>`
-                            : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`
-                        }
-                    </td>
-                </tr>`;
+            userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto || 'N/A'}</td><td>${u.rol}</td>
+                <td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td>
+                <td><button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
+                    ${u.activo ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>` : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`}
+                </td></tr>`;
         });
     } catch (error) {
         userList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar usuarios: ${error.message}</td></tr>`;
@@ -225,9 +153,6 @@ async function cargarUsuarios() {
     }
 }
 
-/**
- * Carga y renderiza la lista de mensajes en la tabla.
- */
 async function cargarMensajes() {
     const messageList = document.getElementById('messageList');
     messageList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
@@ -261,7 +186,21 @@ async function cargarMensajes() {
 }
 
 async function exportarMensajes() {
-    // ... (esta función no necesita cambios)
+    const button = document.getElementById('export-excel-btn');
+    button.textContent = 'Generando...'; button.disabled = true;
+    try {
+        const blob = await fetchAPI('/api/mensajes/export');
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none'; a.href = url;
+        a.download = `Reporte_Mensajes_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); a.remove();
+    } catch (error) {
+        alert(`Error al exportar: ${error.message}`);
+    } finally {
+        button.textContent = 'Exportar a Excel';
+        button.disabled = false;
+    }
 }
 
 async function cargarEstadisticas() {
@@ -275,25 +214,19 @@ async function cargarEstadisticas() {
     }
 }
 
-/**
- * Gestiona la subida del archivo Excel y llama a la función de polling.
- */
 async function handleFileUpload(event) {
     event.preventDefault();
     const fileInput = document.getElementById('fileInput');
     const uploadMessage = document.getElementById('uploadMessage');
     const submitButton = event.target.querySelector('button');
-
     if (fileInput.files.length === 0) {
         uploadMessage.textContent = 'Por favor, selecciona un archivo.';
         return;
     }
-
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
     uploadMessage.textContent = 'Subiendo archivo...';
     submitButton.disabled = true;
-
     try {
         const result = await fetchAPI('/api/mensajes/upload', { method: 'POST', body: formData });
         uploadMessage.textContent = `${result.mensaje} Verificando estado...`;
@@ -306,25 +239,18 @@ async function handleFileUpload(event) {
     }
 }
 
-/**
- * Pregunta al servidor periódicamente por el estado de un lote de procesamiento.
- * @param {string} loteId - El ID del lote a consultar.
- */
 function pollLoteStatus(loteId) {
     const uploadMessage = document.getElementById('uploadMessage');
     let pollCount = 0;
-    const maxPolls = 60; // Máximo 5 minutos de polling (60 intentos * 5 segundos)
-
+    const maxPolls = 60;
     const intervalId = setInterval(async () => {
         if (pollCount++ > maxPolls) {
             clearInterval(intervalId);
             uploadMessage.textContent = 'El procesamiento está tardando más de lo esperado. Los resultados aparecerán cuando finalice.';
             return;
         }
-
         try {
             const statusResult = await fetchAPI(`/api/mensajes/lotes/${loteId}/status`);
-            
             if (statusResult.status === 'COMPLETADO') {
                 clearInterval(intervalId);
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
@@ -343,5 +269,5 @@ function pollLoteStatus(loteId) {
             clearInterval(intervalId);
             uploadMessage.textContent = 'Error de conexión al verificar el estado del proceso.';
         }
-    }, 5000); // Consulta cada 5 segundos
+    }, 3000);
 }
