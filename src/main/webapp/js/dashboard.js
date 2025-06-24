@@ -176,30 +176,38 @@ async function cargarMensajes(page = 0) {
     try {
         const paginatedData = await fetchAPI(`/api/mensajes?page=${page}&size=10`);
         const mensajes = paginatedData.content;
+        
         messageList.innerHTML = '';
         if (!mensajes || mensajes.length === 0) {
             messageList.innerHTML = '<tr><td colspan="7">No hay mensajes para mostrar. Sube un archivo.</td></tr>';
             renderizarPaginacion(0, 0);
             return;
         }
+
         mensajes.forEach(m => {
             let fechaMensaje = 'N/A';
             if (m.fechaHoraMensaje) {
                 fechaMensaje = new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
             }
+            
+            // --- INICIO DEL CAMBIO ---
+            // Añadimos el atributo data-label a cada celda <td>
             messageList.innerHTML += `
                 <tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
-                    <td>${m.id}</td>
-                    <td>${m.nombreAsesor || 'N/A'}</td>
-                    <td>${m.aplicacion || 'N/A'}</td>
-                    <td>${m.texto}</td>
-                    <td>${m.clasificacion}</td>
-                    <td>${m.observacion || 'N/A'}</td>
-                    <td>${fechaMensaje}</td>
+                    <td data-label="ID">${m.id}</td>
+                    <td data-label="Asesor">${m.nombreAsesor || 'N/A'}</td>
+                    <td data-label="Aplicación">${m.aplicacion || 'N/A'}</td>
+                    <td data-label="Mensaje">${m.texto}</td>
+                    <td data-label="Clasificación">${m.clasificacion}</td>
+                    <td data-label="Observación">${m.observacion || 'N/A'}</td>
+                    <td data-label="Fecha del Mensaje">${fechaMensaje}</td>
                 </tr>`;
+            // --- FIN DEL CAMBIO ---
         });
+        
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
-    } catch (error) {
+
+    } catch (error) { 
         messageList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`;
         console.error("Error en cargarMensajes:", error);
     }
