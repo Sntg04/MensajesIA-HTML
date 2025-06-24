@@ -1,7 +1,3 @@
-/**
- * js/auth.js
- * Maneja la lógica de autenticación.
- */
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -17,9 +13,7 @@ async function handleLogin(event) {
     messageDiv.textContent = '';
 
     try {
-        // --- CORRECCIÓN APLICADA AQUÍ ---
-        // Se eliminó el prefijo "/AgenteMensajesIA" para apuntar a la raíz del servidor.
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch('/api/auth/login', { // URL Corregida
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -27,37 +21,18 @@ async function handleLogin(event) {
 
         const data = await response.json();
         if (!response.ok) {
-            // Usa el mensaje de error del servidor si está disponible.
             throw new Error(data.error || `Error HTTP ${response.status}`);
         }
 
-        messageDiv.textContent = '¡Login exitoso! Redirigiendo...';
-        messageDiv.className = 'success-message';
-        
-        // Guardar datos de sesión en localStorage
         localStorage.setItem('jwtToken', data.token);
         localStorage.setItem('username', data.username);
         localStorage.setItem('userRole', data.role);
 
-        // Redirigir al dashboard después de un breve momento
-        setTimeout(() => {
-            window.location.href = 'dashboard.html';
-        }, 1000);
+        window.location.href = 'dashboard.html';
 
     } catch (error) {
         console.error('Error en el login:', error);
-        messageDiv.textContent = error.message; // Muestra el error específico en la UI
+        messageDiv.textContent = error.message;
         messageDiv.className = 'error-message';
     }
-}
-
-// Funciones de utilidad para ser usadas por dashboard.js
-function getToken() {
-    return localStorage.getItem('jwtToken');
-}
-
-function logout() {
-    localStorage.clear();
-    alert('Sesión cerrada.');
-    window.location.href = 'index.html';
 }

@@ -13,8 +13,7 @@ public class MensajeDAO {
     private EntityManager getEntityManager() {
         return JPAUtil.getEntityManagerFactory().createEntityManager();
     }
-    
-    // --- NUEVO MÉTODO PARA GUARDAR EN LOTE (MÁS EFICIENTE) ---
+
     public void guardarVarios(List<Mensaje> mensajes) {
         EntityManager em = getEntityManager();
         try {
@@ -24,7 +23,7 @@ public class MensajeDAO {
             }
             em.getTransaction().commit();
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
+            if (em.getTransaction() != null && em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
             }
             e.printStackTrace();
@@ -45,26 +44,28 @@ public class MensajeDAO {
             }
         }
     }
-    
-    // --- NUEVO MÉTODO PARA BUSCAR POR LOTE ---
-    public List<Mensaje> listarPorLote(String loteId) {
+
+    public EstadisticaMensaje getEstadisticas() {
         EntityManager em = getEntityManager();
         try {
-            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m WHERE m.lote = :loteId", Mensaje.class);
-            query.setParameter("loteId", loteId);
-            return query.getResultList();
+            Long total = em.createQuery("SELECT count(m) FROM Mensaje m", Long.class).getSingleResult();
+            Double spamAvg = em.createQuery("SELECT avg(m.confianza) FROM Mensaje m WHERE m.clasificacion = 'Alerta'", Double.class).getSingleResult();
+            Double noSpamAvg = em.createQuery("SELECT avg(m.confianza) FROM Mensaje m WHERE m.clasificacion = 'Bueno'", Double.class).getSingleResult();
+            return new EstadisticaMensaje(total != null ? total : 0L, spamAvg != null ? spamAvg : 0.0, noSpamAvg != null ? noSpamAvg : 0.0);
+        } catch (NoResultException e) {
+            return new EstadisticaMensaje(0L, 0.0, 0.0);
         } finally {
             if (em != null && em.isOpen()) {
                 em.close();
             }
         }
     }
-    
-    // --- NUEVO MÉTODO PARA BUSCAR ALERTAS POR LOTE ---
-    public List<Mensaje> listarAlertasPorLote(String loteId) {
+
+    // --- MÉTODO AÑADIDO PARA SOLUCIONAR EL ERROR ---
+    public List<Mensaje> listarPorLote(String loteId) {
         EntityManager em = getEntityManager();
         try {
-            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m WHERE m.lote = :loteId AND m.clasificacion = 'Alerta'", Mensaje.class);
+            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m WHERE m.lote = :loteId ORDER BY m.id", Mensaje.class);
             query.setParameter("loteId", loteId);
             return query.getResultList();
         } finally {
@@ -74,19 +75,13 @@ public class MensajeDAO {
         }
     }
 
-    public EstadisticaMensaje getEstadisticas() {
+    // --- MÉTODO AÑADIDO PARA SOLUCIONAR EL ERROR ---
+    public List<Mensaje> listarAlertasPorLote(String loteId) {
         EntityManager em = getEntityManager();
         try {
-            Long totalMensajes = em.createQuery("SELECT count(m) FROM Mensaje m", Long.class).getSingleResult();
-            Double confianzaSpam = em.createQuery("SELECT avg(m.confianza) FROM Mensaje m WHERE m.clasificacion = 'Alerta'", Double.class).getSingleResult();
-            Double confianzaNoSpam = em.createQuery("SELECT avg(m.confianza) FROM Mensaje m WHERE m.clasificacion = 'Bueno'", Double.class).getSingleResult();
-            EstadisticaMensaje estadisticas = new EstadisticaMensaje();
-            estadisticas.setTotalMensajes(totalMensajes != null ? totalMensajes : 0L);
-            estadisticas.setConfianzaPromedioSpam(confianzaSpam != null ? confianzaSpam : 0.0);
-            estadisticas.setConfianzaPromedioNoSpam(confianzaNoSpam != null ? confianzaNoSpam : 0.0);
-            return estadisticas;
-        } catch (NoResultException e) {
-            return new EstadisticaMensaje(0L, 0.0, 0.0);
+            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m WHERE m.lote = :loteId AND m.clasificacion = 'Alerta' ORDER BY m.id", Mensaje.class);
+            query.setParameter("loteId", loteId);
+            return query.getResultList();
         } finally {
             if (em != null && em.isOpen()) {
                 em.close();

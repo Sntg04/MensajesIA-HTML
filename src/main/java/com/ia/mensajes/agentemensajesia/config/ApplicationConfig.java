@@ -9,25 +9,15 @@ import java.util.HashSet;
 import java.util.Set;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 
-// Esta clase ya NO necesita la anotación @ApplicationPath.
-// web.xml se encarga de definir la ruta.
 public class ApplicationConfig extends Application {
-
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> classes = new HashSet<>();
-        
-        // Registrar todos los endpoints (Resources) de la API
         classes.add(AuthResource.class);
         classes.add(UsuarioResource.class);
         classes.add(MensajeResource.class);
-        
-        // Registrar el filtro de autenticación
         classes.add(AuthenticationFilter.class);
-        
-        // Registrar la funcionalidad para subir archivos (multipart)
         classes.add(MultiPartFeature.class);
-        
         return classes;
     }
 }

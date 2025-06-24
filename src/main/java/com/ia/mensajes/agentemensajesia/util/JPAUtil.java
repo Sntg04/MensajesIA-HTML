@@ -17,7 +17,7 @@ public class JPAUtil {
                     System.out.println("INICIANDO JPAUtil: Creando EntityManagerFactory...");
                     try {
                         String dbUrlFromEnv = System.getenv("DB_URL");
-                        
+
                         if (dbUrlFromEnv == null || dbUrlFromEnv.trim().isEmpty()) {
                              throw new IllegalStateException("La variable de entorno DB_URL no está configurada.");
                         }
@@ -28,18 +28,15 @@ public class JPAUtil {
                         if (userInfo == null || !userInfo.contains(":")) {
                             throw new Exception("La URL de la BD no contiene 'usuario:contraseña'.");
                         }
-                        
+
                         String username = userInfo.substring(0, userInfo.indexOf(':'));
                         String password = userInfo.substring(userInfo.indexOf(':') + 1);
 
-                        // --- ¡CORRECCIÓN CLAVE Y DEFINITIVA! ---
-                        // Si getPort() devuelve -1, usamos el puerto estándar de PostgreSQL: 5432
                         int port = dbUri.getPort();
                         if (port == -1) {
                             System.out.println("Puerto no detectado en la URL, usando puerto por defecto 5432.");
-                            port = 5432; 
+                            port = 5432;
                         }
-                        // ----------------------------------------
 
                         String jdbcUrl = "jdbc:postgresql://" + dbUri.getHost() + ":" + port + dbUri.getPath();
 
@@ -48,7 +45,7 @@ public class JPAUtil {
                         } else {
                            jdbcUrl += "?" + dbUri.getQuery();
                         }
-                        
+
                         System.out.println("URL JDBC construida: " + jdbcUrl);
                         System.out.println("Usuario detectado: " + username);
 
@@ -56,7 +53,7 @@ public class JPAUtil {
                         properties.put("jakarta.persistence.jdbc.url", jdbcUrl);
                         properties.put("jakarta.persistence.jdbc.user", username);
                         properties.put("jakarta.persistence.jdbc.password", password);
-                        
+
                         factory = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT_NAME, properties);
                         System.out.println("¡ÉXITO! EntityManagerFactory creado y conectado a la base de datos.");
 
