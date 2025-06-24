@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,56 +24,56 @@ public class MensajeResource {
 
     private final MensajeService mensajeService = new MensajeService();
     private final ExcelExportService excelExportService = new ExcelExportService();
-
-    // Un mapa seguro para hilos para rastrear el estado de los trabajos de procesamiento.
-    // En una aplicación más grande, esto podría ir en una base de datos o un servicio de caché.
     private static final Map<String, String> jobStatuses = new ConcurrentHashMap<>();
 
     @POST
     @Path("/upload")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON) // Asegura que la respuesta por defecto sea JSON
     public Response uploadFile(
             @FormDataParam("file") InputStream uploadedInputStream,
             @FormDataParam("file") FormDataContentDisposition fileDetail) {
 
         try {
             final byte[] fileBytes = uploadedInputStream.readAllBytes();
-            final String loteId = java.util.UUID.randomUUID().toString(); // Generamos el ID aquí para devolverlo
-
-            // Ponemos el trabajo en estado "PROCESANDO"
+            final String loteId = java.util.UUID.randomUUID().toString();
             jobStatuses.put(loteId, "PROCESANDO");
 
             new Thread(() -> {
-                try {
-                    InputStream safeInputStream = new ByteArrayInputStream(fileBytes);
-                    mensajeService.procesarYGuardarMensajesDesdeExcel(safeInputStream, loteId); // Pasamos el loteId
-                    jobStatuses.put(loteId, "COMPLETADO"); // Marcamos como completado
+                try (InputStream safeInputStream = new ByteArrayInputStream(fileBytes)) {
+                    System.out.println("Iniciando procesamiento de archivo en segundo plano: " + fileDetail.getFileName());
+                    mensajeService.procesarYGuardarMensajesDesdeExcel(safeInputStream, loteId);
+                    jobStatuses.put(loteId, "COMPLETADO");
                     System.out.println("Procesamiento en segundo plano completado para lote: " + loteId);
                 } catch (Exception e) {
-                    jobStatuses.put(loteId, "FALLIDO"); // Marcamos como fallido
+                    jobStatuses.put(loteId, "FALLIDO");
                     System.err.println("Error en el procesamiento en segundo plano del lote: " + loteId);
                     e.printStackTrace();
                 }
             }).start();
 
-            // Devolvemos una respuesta inmediata con el ID del lote para que el frontend pueda consultar
             Map<String, String> response = Map.of(
                 "mensaje", "Archivo recibido. El procesamiento ha comenzado.",
                 "loteId", loteId
             );
             
-            return Response.status(Response.Status.ACCEPTED).entity(response).build();
+            // --- INICIO DE LA SOLUCIÓN ---
+            // Añadimos .type(MediaType.APPLICATION_JSON) para garantizar el Content-Type
+            return Response.status(Response.Status.ACCEPTED)
+                           .entity(response)
+                           .type(MediaType.APPLICATION_JSON) // Garantiza el encabezado correcto
+                           .build();
+            // --- FIN DE LA SOLUCIÓN ---
 
         } catch (IOException e) {
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                            .entity(Map.of("error", "Error crítico al leer el archivo subido."))
+                           .type(MediaType.APPLICATION_JSON)
                            .build();
         }
     }
 
-    // --- NUEVO ENDPOINT PARA CONSULTAR EL ESTADO ---
     @GET
     @Path("/lotes/{loteId}/status")
     @Produces(MediaType.APPLICATION_JSON)
@@ -80,9 +81,6 @@ public class MensajeResource {
         String status = jobStatuses.getOrDefault(loteId, "NO_ENCONTRADO");
         return Response.ok(Map.of("status", status)).build();
     }
-
-
-    // --- El resto de los métodos no cambian ---
     
     @GET
     @Produces(MediaType.APPLICATION_JSON)
