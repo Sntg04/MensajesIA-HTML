@@ -17,12 +17,23 @@ public class UsuarioService {
     }
 
     public Usuario crearUsuario(Usuario nuevoUsuario) {
-        if (usuarioDAO.buscarPorUsername(nuevoUsuario.getUsername()) != null) {
-            throw new IllegalArgumentException("El nombre de usuario ya existe.");
+        // 1. Validar que el username no sea nulo o vacío
+        if (nuevoUsuario.getUsername() == null || nuevoUsuario.getUsername().trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre de usuario es requerido.");
+        }
+        if (nuevoUsuario.getPasswordHash() == null || nuevoUsuario.getPasswordHash().isEmpty()) {
+            throw new IllegalArgumentException("La contraseña es requerida.");
         }
 
+        // 2. Comprobar si ya existe un usuario con ese nombre (insensible a mayúsculas)
+        if (usuarioDAO.buscarPorUsername(nuevoUsuario.getUsername().trim()) != null) {
+            throw new IllegalArgumentException("El nombre de usuario '" + nuevoUsuario.getUsername().trim() + "' ya existe.");
+        }
+
+        // 3. Si las validaciones pasan, proceder a crear el usuario
         String passwordHasheada = passwordEncoder.encode(nuevoUsuario.getPasswordHash());
         nuevoUsuario.setPasswordHash(passwordHasheada);
+        nuevoUsuario.setUsername(nuevoUsuario.getUsername().trim()); // Guardar sin espacios
 
         if (nuevoUsuario.getFechaCreacion() == null) {
             nuevoUsuario.setFechaCreacion(new Date());

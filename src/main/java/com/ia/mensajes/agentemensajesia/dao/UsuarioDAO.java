@@ -12,7 +12,6 @@ public class UsuarioDAO {
 
     // ¡YA NO CREAMOS EL EMF AQUÍ! Lo obtenemos de JPAUtil.
     // private static EntityManagerFactory emf = Persistence.createEntityManagerFactory("AgenteMensajesIAPU");
-
     public EntityManager getEntityManager() {
         // Obtenemos la instancia singleton del factory desde nuestra clase de utilidad
         return JPAUtil.getEntityManagerFactory().createEntityManager();
@@ -20,7 +19,6 @@ public class UsuarioDAO {
 
     // ... EL RESTO DE TUS MÉTODOS (crear, buscarPorId, etc.) NO NECESITA CAMBIOS ...
     // Te dejo el método crear como ejemplo de que el resto del código no cambia.
-
     public Usuario crear(Usuario usuario) {
         EntityManager em = getEntityManager();
         try {
@@ -32,8 +30,8 @@ public class UsuarioDAO {
             if (em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
             }
-            e.printStackTrace(); 
-            throw new RuntimeException("Error al crear el usuario en DAO", e); 
+            e.printStackTrace();
+            throw new RuntimeException("Error al crear el usuario en DAO", e);
         } finally {
             em.close();
         }
@@ -53,12 +51,13 @@ public class UsuarioDAO {
     public Usuario buscarPorUsername(String username) {
         EntityManager em = getEntityManager();
         try {
+            // Usamos lower() para hacer la búsqueda insensible a mayúsculas/minúsculas
             TypedQuery<Usuario> query = em.createQuery(
-                "SELECT u FROM Usuario u WHERE u.username = :username", Usuario.class);
+                    "SELECT u FROM Usuario u WHERE lower(u.username) = lower(:username)", Usuario.class);
             query.setParameter("username", username);
             return query.getSingleResult();
         } catch (NoResultException e) {
-            return null; 
+            return null;
         } finally {
             em.close();
         }
