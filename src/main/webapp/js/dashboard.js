@@ -146,16 +146,35 @@ async function cargarUsuarios() {
 
 async function cargarMensajes() {
     const messageList = document.getElementById('messageList');
-    messageList.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
+    messageList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>'; // Ahora son 7 columnas
     try {
         const mensajes = await fetchAPI('/api/mensajes');
         messageList.innerHTML = '';
-        if(mensajes.length === 0){ messageList.innerHTML = '<tr><td colspan="5">No hay mensajes para mostrar. Sube un archivo.</td></tr>'; return; }
+        if(mensajes.length === 0){ 
+            messageList.innerHTML = '<tr><td colspan="7">No hay mensajes para mostrar. Sube un archivo.</td></tr>'; 
+            return; 
+        }
         mensajes.forEach(m => {
-            const fecha = new Date(m.fechaProcesamiento).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
-            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${(m.confianza * 100).toFixed(2)}%</td><td>${fecha}</td></tr>`;
+            // Formatear la fecha del mensaje que viene del Excel
+            let fechaMensaje = 'N/A';
+            if (m.fechaHoraMensaje) {
+                fechaMensaje = new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
+            }
+            
+            messageList.innerHTML += `
+                <tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
+                    <td>${m.id}</td>
+                    <td>${m.nombreAsesor || 'N/A'}</td>
+                    <td>${m.aplicacion || 'N/A'}</td>
+                    <td>${m.texto}</td>
+                    <td>${m.clasificacion}</td>
+                    <td>${m.observacion || 'N/A'}</td>
+                    <td>${fechaMensaje}</td>
+                </tr>`;
         });
-    } catch (error) { document.getElementById('messageError').textContent = `Error al cargar mensajes: ${error.message}`; }
+    } catch (error) { 
+        document.getElementById('messageError').textContent = `Error al cargar mensajes: ${error.message}`; 
+    }
 }
 
 async function exportarMensajes() {

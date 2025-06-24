@@ -1,14 +1,14 @@
 package com.ia.mensajes.agentemensajesia.ia;
 
 public class ResultadoClasificacion {
-    private String categoria;
-    private double confianza;
+    private final String categoria;
+    private final String observacion;
 
-    public ResultadoClasificacion(String categoria, double confianza) {
+    public ResultadoClasificacion(String categoria, String observacion) {
         this.categoria = categoria;
-        this.confianza = confianza;
+        this.observacion = observacion;
     }
     
     public String getCategoria() { return categoria; }
-    public double getConfianza() { return confianza; }
+    public String getObservacion() { return observacion; }
 }

@@ -71,7 +71,7 @@ public class ClasificadorMensajes {
 
     public ResultadoClasificacion clasificar(String textoMensaje) {
         if (textoMensaje == null || textoMensaje.trim().isEmpty()) {
-            return new ResultadoClasificacion("Bueno", 1.0);
+            return new ResultadoClasificacion("Bueno", "N/A");
         }
 
         String mensajeNormalizado = normalizar(textoMensaje);
@@ -81,9 +81,10 @@ public class ClasificadorMensajes {
 
         for (String lema : lemas) {
             if (PALABRAS_ALERTA_LEMAS.contains(lema)) {
-                return new ResultadoClasificacion("Alerta", 0.9);
+                // Devolvemos la palabra clave encontrada como la observación
+                return new ResultadoClasificacion("Alerta", "Palabra clave: '" + lema + "'");
             }
         }
-        return new ResultadoClasificacion("Bueno", 1.0);
+        return new ResultadoClasificacion("Bueno", "N/A");
     }
 }
