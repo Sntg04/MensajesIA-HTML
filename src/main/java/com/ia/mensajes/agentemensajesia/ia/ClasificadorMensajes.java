@@ -30,19 +30,23 @@ public class ClasificadorMensajes {
     private ClasificadorMensajes() {
         try {
             System.out.println("Cargando modelos de OpenNLP...");
-            try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
-                 InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
-                 InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin")) {
+            try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin"); InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin"); InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin")) {
 
-                if (tokenModelIn == null) throw new IOException("No se encontró el modelo de tokenizer: /models/es/es-token.bin");
+                if (tokenModelIn == null) {
+                    throw new IOException("No se encontró el modelo de tokenizer: /models/es/es-token.bin");
+                }
                 TokenizerModel tokenModel = new TokenizerModel(tokenModelIn);
                 this.tokenizer = new TokenizerME(tokenModel);
 
-                if (posModelIn == null) throw new IOException("No se encontró el modelo POS: /models/es/es-pos-maxent.bin");
+                if (posModelIn == null) {
+                    throw new IOException("No se encontró el modelo POS: /models/es/es-pos-maxent.bin");
+                }
                 POSModel posModel = new POSModel(posModelIn);
                 this.posTagger = new POSTaggerME(posModel);
 
-                if (lemmaModelIn == null) throw new IOException("No se encontró el modelo de lematización: /models/es/es-lemmatizer.bin");
+                if (lemmaModelIn == null) {
+                    throw new IOException("No se encontró el modelo de lematización: /models/es/es-lemmatizer.bin");
+                }
                 LemmatizerModel lemmaModel = new LemmatizerModel(lemmaModelIn);
                 this.lemmatizer = new LemmatizerME(lemmaModel);
             }
@@ -60,18 +64,23 @@ public class ClasificadorMensajes {
         return instance;
     }
 
+    // En ClasificadorMensajes.java, dentro del método normalizar
     private String normalizar(String texto) {
-        if (texto == null) return "";
+        if (texto == null) {
+            return "";
+        }
         texto = texto.toLowerCase();
         texto = Normalizer.normalize(texto, Normalizer.Form.NFD);
         texto = texto.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
-        texto = texto.replaceAll("[^a-z0-9\\s]", "");
+        // Línea extra para quitar más símbolos:
+        texto = texto.replaceAll("[^a-z0-9\\s]", " "); // Reemplaza cualquier cosa que no sea letra, número o espacio.
         return texto;
     }
 
     /**
      * Clasifica un mensaje. Si ocurre un error interno en la librería de NLP,
      * lo captura, lo reporta en los logs y devuelve un estado de error.
+     *
      * @param textoMensaje El texto a clasificar.
      * @return Un objeto ResultadoClasificacion.
      */
@@ -93,7 +102,7 @@ public class ClasificadorMensajes {
                 }
             }
             // --- FIN DEL CÓDIGO FRÁGIL ---
-            
+
             return new ResultadoClasificacion("Bueno", "N/A");
 
         } catch (Exception e) {
@@ -103,7 +112,7 @@ public class ClasificadorMensajes {
             System.err.println("Causa: " + e.getMessage());
             System.err.println("Texto del Mensaje Problemático: " + textoMensaje);
             System.err.println("-------------------------------------------------");
-            
+
             // Devolvemos un resultado especial para poder identificarlo en la base de datos.
             return new ResultadoClasificacion("Error de Análisis", "El motor de IA no pudo procesar este texto.");
         }

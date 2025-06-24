@@ -203,26 +203,36 @@ async function cargarMensajes(page = 0) {
     }
 }
 
+/**
+ * Renderiza los controles de paginación (Anterior, info de página, Siguiente).
+ * @param {number} totalPages - El número total de páginas.
+ * @param {number} currentPage - La página actual (basada en índice 0).
+ */
 function renderizarPaginacion(totalPages, currentPage) {
     const container = document.getElementById('pagination-container');
-    container.innerHTML = '';
+    container.innerHTML = ''; // Limpiar controles anteriores
+
+    // No mostrar nada si hay 1 o 0 páginas
     if (totalPages <= 1) return;
+
+    // 1. Botón "Anterior"
     const prevButton = document.createElement('button');
-    prevButton.textContent = 'Anterior';
+    prevButton.innerHTML = '&laquo;'; // Ícono de flecha izquierda «
+    prevButton.title = 'Página Anterior';
     prevButton.dataset.page = currentPage - 1;
     prevButton.disabled = currentPage === 0;
     container.appendChild(prevButton);
-    for (let i = 0; i < totalPages; i++) {
-        const pageButton = document.createElement('button');
-        pageButton.textContent = i + 1;
-        pageButton.dataset.page = i;
-        if (i === currentPage) {
-            pageButton.classList.add('active');
-        }
-        container.appendChild(pageButton);
-    }
+
+    // 2. Texto informativo "Página X de Y"
+    const info = document.createElement('span');
+    info.className = 'info-text';
+    info.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+    container.appendChild(info);
+
+    // 3. Botón "Siguiente"
     const nextButton = document.createElement('button');
-    nextButton.textContent = 'Siguiente';
+    nextButton.innerHTML = '&raquo;'; // Ícono de flecha derecha »
+    nextButton.title = 'Página Siguiente';
     nextButton.dataset.page = currentPage + 1;
     nextButton.disabled = currentPage >= totalPages - 1;
     container.appendChild(nextButton);
