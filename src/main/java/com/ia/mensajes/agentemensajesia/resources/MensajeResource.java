@@ -1,5 +1,6 @@
 package com.ia.mensajes.agentemensajesia.resources;
 
+import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.services.ExcelExportService;
 import com.ia.mensajes.agentemensajesia.services.MensajeService;
@@ -11,7 +12,6 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.io.ByteArrayInputStream;
@@ -29,19 +29,32 @@ public class MensajeResource {
     public Response uploadFile(
             @FormDataParam("file") InputStream uploadedInputStream,
             @FormDataParam("file") FormDataContentDisposition fileDetail) {
+
+        // --- INICIO DE LA LÓGICA ASÍNCRONA ---
+
+        // 1. Iniciar el procesamiento en un nuevo hilo (en segundo plano)
+        new Thread(() -> {
+            try {
+                System.out.println("Iniciando procesamiento de archivo en segundo plano: " + fileDetail.getFileName());
+                mensajeService.procesarYGuardarMensajesDesdeExcel(uploadedInputStream);
+                System.out.println("Procesamiento en segundo plano completado para: " + fileDetail.getFileName());
+            } catch (Exception e) {
+                System.err.println("Error en el procesamiento en segundo plano del archivo: " + fileDetail.getFileName());
+                e.printStackTrace();
+            }
+        }).start();
+
+        // 2. Devolver una respuesta INMEDIATA al usuario.
+        // Usamos el código de estado 202 (Accepted) que significa "Tu petición fue aceptada
+        // y se está procesando, pero aún no ha terminado".
+        Map<String, String> response = Map.of(
+            "mensaje", "Archivo recibido. El procesamiento ha comenzado en segundo plano.",
+            "detalle", "Los nuevos mensajes aparecerán en el dashboard en unos minutos."
+        );
         
-        try {
-            List<Mensaje> mensajesGuardados = mensajeService.procesarYGuardarMensajesDesdeExcel(uploadedInputStream);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Archivo procesado con éxito.");
-            response.put("mensajesGuardados", mensajesGuardados.size());
-            return Response.ok(response).build();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "No se pudo procesar el archivo: " + e.getMessage());
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(errorResponse).build();
-        }
+        return Response.status(Response.Status.ACCEPTED).entity(response).build();
+        
+        // --- FIN DE LA LÓGICA ASÍNCRONA ---
     }
 
     @GET
