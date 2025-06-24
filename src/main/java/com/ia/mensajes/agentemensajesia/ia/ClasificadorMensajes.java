@@ -69,22 +69,43 @@ public class ClasificadorMensajes {
         return texto;
     }
 
+    /**
+     * Clasifica un mensaje. Si ocurre un error interno en la librería de NLP,
+     * lo captura, lo reporta en los logs y devuelve un estado de error.
+     * @param textoMensaje El texto a clasificar.
+     * @return Un objeto ResultadoClasificacion.
+     */
     public ResultadoClasificacion clasificar(String textoMensaje) {
         if (textoMensaje == null || textoMensaje.trim().isEmpty()) {
             return new ResultadoClasificacion("Bueno", "N/A");
         }
 
-        String mensajeNormalizado = normalizar(textoMensaje);
-        String[] tokens = tokenizer.tokenize(mensajeNormalizado);
-        String[] tags = posTagger.tag(tokens);
-        String[] lemas = lemmatizer.lemmatize(tokens, tags);
+        try {
+            // --- INICIO DEL CÓDIGO FRÁGIL ---
+            String mensajeNormalizado = normalizar(textoMensaje);
+            String[] tokens = tokenizer.tokenize(mensajeNormalizado);
+            String[] tags = posTagger.tag(tokens);
+            String[] lemas = lemmatizer.lemmatize(tokens, tags);
 
-        for (String lema : lemas) {
-            if (PALABRAS_ALERTA_LEMAS.contains(lema)) {
-                // Devolvemos la palabra clave encontrada como la observación
-                return new ResultadoClasificacion("Alerta", "Palabra clave: '" + lema + "'");
+            for (String lema : lemas) {
+                if (PALABRAS_ALERTA_LEMAS.contains(lema)) {
+                    return new ResultadoClasificacion("Alerta", "Palabra clave: '" + lema + "'");
+                }
             }
+            // --- FIN DEL CÓDIGO FRÁGIL ---
+            
+            return new ResultadoClasificacion("Bueno", "N/A");
+
+        } catch (Exception e) {
+            // Si algo falla en el bloque try, lo capturamos aquí.
+            System.err.println("-------------------------------------------------");
+            System.err.println("ERROR: Fallo el procesamiento de NLP para un mensaje.");
+            System.err.println("Causa: " + e.getMessage());
+            System.err.println("Texto del Mensaje Problemático: " + textoMensaje);
+            System.err.println("-------------------------------------------------");
+            
+            // Devolvemos un resultado especial para poder identificarlo en la base de datos.
+            return new ResultadoClasificacion("Error de Análisis", "El motor de IA no pudo procesar este texto.");
         }
-        return new ResultadoClasificacion("Bueno", "N/A");
     }
 }
