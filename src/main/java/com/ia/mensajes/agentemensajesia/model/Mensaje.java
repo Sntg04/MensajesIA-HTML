@@ -2,8 +2,8 @@ package com.ia.mensajes.agentemensajesia.model;
 
 import jakarta.persistence.*;
 import java.io.Serializable;
-import java.util.Date;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Entity
 @Table(name = "mensajes")
@@ -13,7 +13,6 @@ public class Mensaje implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // --- Campos extraídos del Excel ---
     @Column(name = "aplicacion", length = 100)
     private String aplicacion;
 
@@ -29,14 +28,16 @@ public class Mensaje implements Serializable {
     @Column(name = "texto_mensaje", columnDefinition = "TEXT", nullable = false)
     private String texto;
 
-    // --- Campos generados por la IA ---
     @Column(name = "clasificacion", length = 50)
     private String clasificacion;
 
     @Column(name = "observacion", columnDefinition = "TEXT")
-    private String observacion; // Para guardar por qué es crítico
+    private String observacion;
 
-    // --- Campos de control del sistema ---
+    // --- Campo sin sus Getters y Setters ---
+    @Column(name = "confianza")
+    private double confianza;
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "fecha_procesamiento", nullable = false)
     private Date fechaProcesamiento;
@@ -66,4 +67,13 @@ public class Mensaje implements Serializable {
     public void setFechaProcesamiento(Date fechaProcesamiento) { this.fechaProcesamiento = fechaProcesamiento; }
     public String getLote() { return lote; }
     public void setLote(String lote) { this.lote = lote; }
+    
+    // --- MÉTODOS AÑADIDOS QUE SOLUCIONAN EL ERROR ---
+    public double getConfianza() {
+        return confianza;
+    }
+
+    public void setConfianza(double confianza) {
+        this.confianza = confianza;
+    }
 }
