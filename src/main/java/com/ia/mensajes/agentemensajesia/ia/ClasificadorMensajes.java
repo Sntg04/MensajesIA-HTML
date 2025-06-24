@@ -1,5 +1,10 @@
 package com.ia.mensajes.agentemensajesia.ia;
 
+import java.io.InputStream;
+import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import opennlp.tools.lemmatizer.LemmatizerME;
 import opennlp.tools.lemmatizer.LemmatizerModel;
 import opennlp.tools.postag.POSModel;
@@ -7,68 +12,52 @@ import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.Normalizer;
-import java.util.Set;
-import java.util.regex.Pattern;
-
 public class ClasificadorMensajes {
 
-    // --- NUEVO: ThreadLocal para asegurar una instancia por hilo ---
-    private static final ThreadLocal<ClasificadorMensajes> threadInstance = 
-        ThreadLocal.withInitial(ClasificadorMensajes::new);
+    private TokenizerME tokenizer;
+    private POSTaggerME posTagger;
+    private LemmatizerME lemmatizer;
+    
+    private static final Set<String> PALABRAS_ALERTA_LEMAS = new HashSet<>(Arrays.asList(
+            "urgente", "importante", "premio", "ganador", "oferta", "gratis",
+            "promocion", "descuento", "exclusivo", "limitado", "click", "aqui",
+            "verificar", "cuenta", "banco", "tarjeta", "credito", "contrasena",
+            "seguridad", "suspension", "factura", "deuda", "fraude", "hack"
+    ));
 
-    // --- NUEVO: Método estático para obtener la instancia segura para el hilo actual ---
-    public static ClasificadorMensajes getInstance() {
-        return threadInstance.get();
-    }
-
-    // Lista de palabras clave (lemas)
-    private static final Set<String> PALABRAS_ALERTA_LEMAS = Set.of(
-        "deber", "obligacion", "incumplimiento", "proceso", "juridico", "abogado",
-        "embargo", "retencion", "sancion", "demanda", "legal", "reportar", "cobro",
-        "amenaza", "consecuencia", "evasion", "responsabilidad", "deuda", "mora",
-        "buro", "presion", "penalizacion", "visita", "tercero", "localizacion", "castigado"
-    );
-
-    // Los modelos ahora son privados y no estáticos
-    private final TokenizerME tokenizer;
-    private final POSTaggerME posTagger;
-    private final LemmatizerME lemmatizer;
-
-    // El constructor ahora es privado para ser llamado solo por ThreadLocal
-    private ClasificadorMensajes() {
+    public void cargarModelos() {
         try {
-            // Cargar modelo de Tokenizer
-            try (InputStream modelIn = getClass().getResourceAsStream("/models/es/es-token.bin")) {
-                if (modelIn == null) throw new IOException("No se encontró el modelo de tokenizer: /models/es/es-token.bin");
-                TokenizerModel tokenModel = new TokenizerModel(modelIn);
-                this.tokenizer = new TokenizerME(tokenModel);
-            }
+            System.out.println("Cargando modelos de OpenNLP...");
+            InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
+            TokenizerModel tokenModel = new TokenizerModel(tokenModelIn);
+            this.tokenizer = new TokenizerME(tokenModel);
 
-            // Cargar modelo de POS Tagger
-            try (InputStream modelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin")) {
-                if (modelIn == null) throw new IOException("No se encontró el modelo POS: /models/es/es-pos-maxent.bin");
-                POSModel posModel = new POSModel(modelIn);
-                this.posTagger = new POSTaggerME(posModel);
-            }
+            InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
+            POSModel posModel = new POSModel(posModelIn);
+            this.posTagger = new POSTaggerME(posModel);
 
-            // Cargar MODELO de Lemmatizer
-            try (InputStream modelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin")) {
-                if (modelIn == null) throw new IOException("No se encontró el modelo de lematización: /models/es/es-lemmatizer.bin");
-                LemmatizerModel lemmatizerModel = new LemmatizerModel(modelIn);
-                this.lemmatizer = new LemmatizerME(lemmatizerModel);
-            }
-
-        } catch (IOException e) {
+            InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin");
+            LemmatizerModel lemmaModel = new LemmatizerModel(lemmaModelIn);
+            this.lemmatizer = new LemmatizerME(lemmaModel);
+            System.out.println("Modelos cargados exitosamente.");
+        } catch (Exception e) {
+            System.err.println("Error al cargar los modelos de NLP. Asegúrate de que los archivos .bin estén en src/main/resources/models/es/");
             throw new RuntimeException("Fallo al cargar los modelos de NLP.", e);
         }
     }
-    
+
+    private String normalizar(String texto) {
+        if (texto == null) return "";
+        texto = texto.toLowerCase();
+        texto = Normalizer.normalize(texto, Normalizer.Form.NFD);
+        texto = texto.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
+        texto = texto.replaceAll("[^a-z0-9\\s]", "");
+        return texto;
+    }
+
     public ResultadoClasificacion clasificar(String textoMensaje) {
         if (textoMensaje == null || textoMensaje.trim().isEmpty()) {
-            return new ResultadoClasificacion("Bueno", null);
+            return new ResultadoClasificacion("Bueno", 1.0);
         }
 
         String mensajeNormalizado = normalizar(textoMensaje);
@@ -78,24 +67,11 @@ public class ClasificadorMensajes {
 
         for (String lema : lemas) {
             if (PALABRAS_ALERTA_LEMAS.contains(lema)) {
-                return new ResultadoClasificacion("Alerta", lema);
+                // Devolver confianza 0.9 (90%) si encuentra una palabra de alerta
+                return new ResultadoClasificacion("Alerta", 0.9);
             }
         }
-        
-        return new ResultadoClasificacion("Bueno", null);
-    }
-
-    public String reescribir(String textoOriginal) {
-        return "Sugerencia: Intente reformular la frase usando un tono más neutral y enfocado en soluciones, evitando palabras que puedan interpretarse como una amenaza o presión.";
-    }
-
-    private static String normalizar(String texto) {
-        if (texto == null) return "";
-        String textoNormalizado = texto.toLowerCase();
-        textoNormalizado = Normalizer.normalize(textoNormalizado, Normalizer.Form.NFD);
-        Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
-        textoNormalizado = pattern.matcher(textoNormalizado).replaceAll("");
-        textoNormalizado = textoNormalizado.replaceAll("\\s+", " ").trim();
-        return textoNormalizado;
+        // Devolver confianza 1.0 (100%) si es un mensaje bueno
+        return new ResultadoClasificacion("Bueno", 1.0);
     }
 }

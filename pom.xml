@@ -1,5 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="[http://maven.apache.org/POM/4.0.0](http://maven.apache.org/POM/4.0.0)" xmlns:xsi="[http://www.w3.org/2001/XMLSchema-instance](http://www.w3.org/2001/XMLSchema-instance)"
+         xsi:schemaLocation="[http://maven.apache.org/POM/4.0.0](http://maven.apache.org/POM/4.0.0) [http://maven.apache.org/xsd/maven-4.0.0.xsd](http://maven.apache.org/xsd/maven-4.0.0.xsd)">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ia.mensajes</groupId>
     <artifactId>AgenteMensajesIA</artifactId>
@@ -9,137 +9,40 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Actualizamos todo a Java 17 para ser compatible con las librerías modernas -->
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        
+        <maven.compiler.release>17</maven.compiler.release>
+        <opennlp.tools.version>2.3.2</opennlp.tools.version>
+        <spring.security.crypto.version>6.2.4</spring.security.crypto.version>
         <jakarta.servlet.api.version>6.0.0</jakarta.servlet.api.version>
-        <jakarta.ws.rs.version>3.1.0</jakarta.ws.rs.version>
-        <jakarta.persistence.version>3.1.0</jakarta.persistence.version>
         <jersey.version>3.1.5</jersey.version>
         <hibernate.version>6.4.4.Final</hibernate.version>
         <postgresql.connector.version>42.7.3</postgresql.connector.version>
         <apache.poi.version>5.2.5</apache.poi.version>
-        
-        <!-- Versiones que requieren Java 17 -->
-        <opennlp.tools.version>2.3.2</opennlp.tools.version>
-        <spring.security.crypto.version>6.2.4</spring.security.crypto.version>
-        
-        <commons.logging.version>1.3.1</commons.logging.version>
         <jjwt.version>0.11.5</jjwt.version>
     </properties>
 
     <dependencies>
-        <!-- Dependencias con versiones alineadas a Java 17 -->
-        <dependency>
-            <groupId>org.apache.opennlp</groupId>
-            <artifactId>opennlp-tools</artifactId>
-            <version>${opennlp.tools.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-crypto</artifactId>
-            <version>${spring.security.crypto.version}</version>
-        </dependency>
-        
-        <!-- Resto de dependencias -->
-        <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <version>${jakarta.servlet.api.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.ws.rs</groupId>
-            <artifactId>jakarta.ws.rs-api</artifactId>
-            <version>${jakarta.ws.rs.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.containers</groupId>
-            <artifactId>jersey-container-servlet</artifactId>
-            <version>${jersey.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.inject</groupId>
-            <artifactId>jersey-hk2</artifactId>
-            <version>${jersey.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.media</groupId>
-            <artifactId>jersey-media-json-binding</artifactId>
-            <version>${jersey.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.media</groupId>
-            <artifactId>jersey-media-multipart</artifactId>
-            <version>${jersey.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.persistence</groupId>
-            <artifactId>jakarta.persistence-api</artifactId>
-            <version>${jakarta.persistence.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate.orm</groupId>
-            <artifactId>hibernate-core</artifactId>
-            <version>${hibernate.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>${postgresql.connector.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi</artifactId>
-            <version>${apache.poi.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi-ooxml</artifactId>
-            <version>${apache.poi.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-logging</groupId>
-            <artifactId>commons-logging</artifactId>
-            <version>${commons.logging.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>${jjwt.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
+        <dependency><groupId>org.apache.opennlp</groupId><artifactId>opennlp-tools</artifactId><version>${opennlp.tools.version}</version></dependency>
+        <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-crypto</artifactId><version>${spring.security.crypto.version}</version></dependency>
+        <dependency><groupId>jakarta.servlet</groupId><artifactId>jakarta.servlet-api</artifactId><version>${jakarta.servlet.api.version}</version><scope>provided</scope></dependency>
+        <dependency><groupId>jakarta.ws.rs</groupId><artifactId>jakarta.ws.rs-api</artifactId><version>3.1.0</version></dependency>
+        <dependency><groupId>org.glassfish.jersey.containers</groupId><artifactId>jersey-container-servlet</artifactId><version>${jersey.version}</version></dependency>
+        <dependency><groupId>org.glassfish.jersey.inject</groupId><artifactId>jersey-hk2</artifactId><version>${jersey.version}</version></dependency>
+        <dependency><groupId>org.glassfish.jersey.media</groupId><artifactId>jersey-media-json-binding</artifactId><version>${jersey.version}</version></dependency>
+        <dependency><groupId>org.glassfish.jersey.media</groupId><artifactId>jersey-media-multipart</artifactId><version>${jersey.version}</version></dependency>
+        <dependency><groupId>jakarta.persistence</groupId><artifactId>jakarta.persistence-api</artifactId><version>3.1.0</version></dependency>
+        <dependency><groupId>org.hibernate.orm</groupId><artifactId>hibernate-core</artifactId><version>${hibernate.version}</version></dependency>
+        <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>${postgresql.connector.version}</version><scope>runtime</scope></dependency>
+        <dependency><groupId>org.apache.poi</groupId><artifactId>poi-ooxml</artifactId><version>${apache.poi.version}</version></dependency>
+        <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-api</artifactId><version>${jjwt.version}</version></dependency>
+        <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-impl</artifactId><version>${jjwt.version}</version><scope>runtime</scope></dependency>
+        <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-jackson</artifactId><version>${jjwt.version}</version><scope>runtime</scope></dependency>
     </dependencies>
 
     <build>
-        <finalName>${project.artifactId}</finalName>
+        <finalName>AgenteMensajesIA</finalName>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <release>17</release>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <version>3.3.2</version>
-            </plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.11.0</version></plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-war-plugin</artifactId><version>3.3.2</version></plugin>
         </plugins>
     </build>
 </project>

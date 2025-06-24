@@ -2,10 +2,11 @@ package com.ia.mensajes.agentemensajesia.services;
 
 import com.ia.mensajes.agentemensajesia.dao.UsuarioDAO;
 import com.ia.mensajes.agentemensajesia.model.Usuario;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // Importamos el que ya usas
-
+import com.ia.mensajes.agentemensajesia.util.PasswordHasherUtil;
 import java.util.Date;
 import java.util.List;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 
 public class UsuarioService {
 
@@ -18,16 +19,19 @@ public class UsuarioService {
     }
 
     /**
-     * Crea un nuevo usuario. Hashea la contraseña y llama al método crear() del DAO.
+     * Crea un nuevo usuario. Llama al método correcto del DAO y encripta la contraseña.
+     * @param nuevoUsuario El usuario a crear con la contraseña en texto plano.
+     * @return El usuario persistido.
      */
-    public Usuario crearUsuario(Usuario nuevoUsuario) throws IllegalArgumentException {
+    public Usuario crearUsuario(Usuario nuevoUsuario) {
         if (usuarioDAO.buscarPorUsername(nuevoUsuario.getUsername()) != null) {
             throw new IllegalArgumentException("El nombre de usuario ya existe.");
         }
         
+        // Hashea la contraseña usando tu clase de utilidad o la de Spring Security
         String passwordHasheada = passwordEncoder.encode(nuevoUsuario.getPasswordHash());
         nuevoUsuario.setPasswordHash(passwordHasheada);
-        
+
         if (nuevoUsuario.getFechaCreacion() == null) {
             nuevoUsuario.setFechaCreacion(new Date());
         }
@@ -38,34 +42,39 @@ public class UsuarioService {
     }
 
     /**
-     * Obtiene todos los usuarios. Llama al método listarTodos() del DAO.
+     * Obtiene todos los usuarios llamando al método listarTodos() del DAO.
+     * @return Una lista de todos los usuarios.
      */
     public List<Usuario> obtenerTodosLosUsuarios() {
         // Llama al método listarTodos() que existe en tu UsuarioDAO.
         return usuarioDAO.listarTodos();
     }
-
+    
     public Usuario obtenerUsuarioPorId(Integer id) {
         return usuarioDAO.buscarPorId(id);
     }
     
-    // --- MÉTODO CORREGIDO PARA QUE COINCIDA CON EL RESOURCE ---
     /**
-     * Actualiza un usuario existente. Acepta un ID y los datos a actualizar.
+     * Actualiza un usuario existente.
+     * Este método SÍ coincide con lo que el UsuarioResource espera.
+     * @param id El ID del usuario a actualizar.
+     * @param datosActualizados El objeto con los nuevos datos.
+     * @return El usuario actualizado.
      */
     public Usuario actualizarUsuario(Integer id, Usuario datosActualizados) {
         Usuario usuarioExistente = usuarioDAO.buscarPorId(id);
         if (usuarioExistente == null) {
-            return null; // O lanzar una excepción
+            throw new IllegalArgumentException("Usuario no encontrado con ID: " + id);
         }
 
-        // Actualiza los campos que vienen en el objeto
+        // Actualiza los campos que vienen en el objeto de datos
         if (datosActualizados.getNombreCompleto() != null) {
             usuarioExistente.setNombreCompleto(datosActualizados.getNombreCompleto());
         }
         if (datosActualizados.getRol() != null) {
             usuarioExistente.setRol(datosActualizados.getRol());
         }
+        // Permite cambiar el estado activo explícitamente
         usuarioExistente.setActivo(datosActualizados.isActivo());
         
         // Si se proporciona una nueva contraseña, la encripta y la actualiza
@@ -75,10 +84,20 @@ public class UsuarioService {
 
         return usuarioDAO.actualizar(usuarioExistente);
     }
-
-    // --- MÉTODO AÑADIDO QUE FALTABA ---
+    
+    /**
+     * Elimina físicamente un usuario de la base de datos.
+     * @param id El ID del usuario a eliminar.
+     */
+    public void eliminarUsuario(Integer id) {
+        usuarioDAO.eliminar(id);
+    }
+    
     /**
      * Desactiva un usuario (pone el campo 'activo' en false).
+     * Este es el método que faltaba y que el UsuarioResource necesita.
+     * @param id El ID del usuario a desactivar.
+     * @return true si se desactivó correctamente, false si no se encontró el usuario.
      */
     public boolean desactivarUsuario(Integer id) {
         Usuario usuario = usuarioDAO.buscarPorId(id);
@@ -88,12 +107,5 @@ public class UsuarioService {
             return true;
         }
         return false;
-    }
-
-    /**
-     * Elimina físicamente un usuario.
-     */
-    public void eliminarUsuario(Integer id) {
-        usuarioDAO.eliminar(id);
     }
 }
