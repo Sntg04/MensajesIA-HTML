@@ -92,7 +92,8 @@ async function fetchAPI(url, options = {}) {
 // --- SECCIÓN: GESTIÓN DE USUARIOS ---
 
 function showUserModal(user = null) {
-    const form = document.getElementById('user-form'); form.reset();
+    const form = document.getElementById('user-form');
+    form.reset();
     document.getElementById('form-error').textContent = '';
     const isEditing = !!user;
     document.getElementById('modal-title').textContent = isEditing ? 'Editar Usuario' : 'Crear Usuario';
@@ -105,7 +106,9 @@ function showUserModal(user = null) {
     document.getElementById('user-modal').style.display = 'flex';
 }
 
-function hideUserModal() { document.getElementById('user-modal').style.display = 'none'; }
+function hideUserModal() {
+    document.getElementById('user-modal').style.display = 'none';
+}
 
 async function handleUserFormSubmit(event) {
     event.preventDefault();
@@ -128,7 +131,9 @@ async function handleUserFormSubmit(event) {
         await fetchAPI(url, { method, body: JSON.stringify(userData) });
         hideUserModal();
         cargarUsuarios();
-    } catch (error) { document.getElementById('form-error').textContent = `Error: ${error.message}`; }
+    } catch (error) {
+        document.getElementById('form-error').textContent = `Error: ${error.message}`;
+    }
 }
 
 async function handleUserTableActions(event) {
@@ -151,7 +156,9 @@ async function handleUserTableActions(event) {
             try {
                 await fetchAPI(`/api/usuarios/${userId}/desactivar`, { method: 'DELETE' });
                 cargarUsuarios();
-            } catch (error) { alert(`Error: ${error.message}`); }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
         }
         return;
     }
@@ -161,7 +168,9 @@ async function handleUserTableActions(event) {
             try {
                 await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ activo: true }) });
                 cargarUsuarios();
-            } catch (error) { alert(`Error: ${error.message}`); }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
         }
     }
 }
@@ -178,12 +187,18 @@ async function cargarUsuarios() {
         }
         usuarios.forEach(u => {
             const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
-            userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto || 'N/A'}</td><td>${u.rol}</td>
-                <td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td>
+            userList.innerHTML += `<tr>
+                <td>${u.id}</td>
+                <td>${u.username}</td>
+                <td>${u.nombreCompleto || 'N/A'}</td>
+                <td>${u.rol}</td>
+                <td>${u.activo ? 'Sí' : 'No'}</td>
+                <td>${fecha}</td>
                 <td>
                     <button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
                     ${u.activo ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>` : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`}
-                </td></tr>`;
+                </td>
+            </tr>`;
         });
     } catch (error) {
         userList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar usuarios: ${error.message}</td></tr>`;
@@ -212,7 +227,15 @@ async function cargarMensajes(page = 0, loteId = null) {
         }
         mensajes.forEach(m => {
             let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
-            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${m.observacion || 'N/A'}</td><td>${fechaMensaje}</td></tr>`;
+            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
+                <td>${m.id}</td>
+                <td>${m.nombreAsesor || 'N/A'}</td>
+                <td>${m.aplicacion || 'N/A'}</td>
+                <td>${m.texto}</td>
+                <td>${m.clasificacion}</td>
+                <td>${m.observacion || 'N/A'}</td>
+                <td>${fechaMensaje}</td>
+            </tr>`;
         });
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
     } catch (error) {
@@ -253,14 +276,19 @@ function handlePaginationClick(event) {
 
 async function exportarMensajes() {
     const button = document.getElementById('export-excel-btn');
-    button.textContent = 'Generando...'; button.disabled = true;
+    button.textContent = 'Generando...';
+    button.disabled = true;
     try {
         const blob = await fetchAPI('/api/mensajes/export');
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.style.display = 'none'; a.href = url;
+        a.style.display = 'none';
+        a.href = url;
         a.download = `Reporte_Mensajes_${new Date().toISOString().split('T')[0]}.xlsx`;
-        document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); a.remove();
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
     } catch (error) {
         alert(`Error al exportar: ${error.message}`);
     } finally {
@@ -328,13 +356,13 @@ function pollLoteStatus(loteId) {
                     cargarEstadisticas();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
-                    progressBar.style.backgroundColor = 'var(--accent-color)';
+                    progressBar.style.backgroundColor = 'var(--text-light)';
                     uploadMessage.textContent = 'Tablas actualizadas.';
                 }, 2000);
             } else if (statusResult.status === 'FALLIDO') {
                 clearInterval(intervalId);
                 uploadMessage.textContent = 'Error: El procesamiento del archivo en el servidor ha fallado.';
-                progressBar.style.backgroundColor = '#e53935';
+                progressBar.style.backgroundColor = '#ef4444';
             } else {
                 uploadMessage.textContent = `Procesando...`;
             }
