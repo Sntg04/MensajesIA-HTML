@@ -18,8 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
 
-    // --- LÓGICA CORREGIDA: Recupera el estado guardado ---
-    // Al cargar la página, comprueba si estábamos viendo un lote específico.
+    // Aplica el estado de la barra lateral guardado.
+    if (localStorage.getItem('sidebarState') === 'collapsed') {
+        document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
+    }
+
+    // Recupera el estado guardado del lote.
     currentLoteId = localStorage.getItem('currentLoteId');
 
     // Adapta la vista según el rol del usuario.
@@ -30,7 +34,6 @@ function setupUI() {
         cargarUsuarios();
     }
     
-    // Muestra la vista inicial sin recargar los datos todavía.
     showTargetView(initialView);
     
     // Carga los mensajes (usará el lote guardado si existe) y las estadísticas.
@@ -44,6 +47,7 @@ function setupUI() {
 function setupEventListeners() {
     document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
     document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
+    document.getElementById('sidebar-toggle').addEventListener('click', handleSidebarToggle);
     document.getElementById('export-excel-btn').addEventListener('click', exportarMensajes);
     document.getElementById('show-create-user-modal').addEventListener('click', () => showUserModal());
     document.getElementById('cancel-user-modal').addEventListener('click', hideUserModal);
@@ -51,6 +55,16 @@ function setupEventListeners() {
     document.getElementById('userList').addEventListener('click', handleUserTableActions);
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
     document.getElementById('pagination-container').addEventListener('click', handlePaginationClick);
+}
+
+/**
+ * Gestiona el clic en el botón de menú para ocultar/mostrar la barra lateral y guarda la preferencia.
+ */
+function handleSidebarToggle() {
+    const container = document.querySelector('.dashboard-container');
+    container.classList.toggle('sidebar-collapsed');
+    const isCollapsed = container.classList.contains('sidebar-collapsed');
+    localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
 }
 
 /**
@@ -70,14 +84,12 @@ function switchView(targetId) {
     showTargetView(targetId);
 
     if (targetId === 'mensajes') {
-        // --- LÓGICA CORREGIDA: Borra el estado guardado al hacer clic ---
         // Al hacer clic explícito en "Mensajes Procesados", olvidamos el lote y mostramos todos.
         localStorage.removeItem('currentLoteId');
         currentLoteId = null;
         cargarMensajes(0);
     }
 }
-
 
 /**
  * Función central para realizar todas las llamadas a la API.
@@ -102,8 +114,10 @@ async function fetchAPI(url, options = {}) {
 }
 
 // --- SECCIÓN: GESTIÓN DE USUARIOS ---
+
 function showUserModal(user = null) {
-    const form = document.getElementById('user-form'); form.reset();
+    const form = document.getElementById('user-form');
+    form.reset();
     document.getElementById('form-error').textContent = '';
     const isEditing = !!user;
     document.getElementById('modal-title').textContent = isEditing ? 'Editar Usuario' : 'Crear Usuario';
@@ -116,7 +130,9 @@ function showUserModal(user = null) {
     document.getElementById('user-modal').style.display = 'flex';
 }
 
-function hideUserModal() { document.getElementById('user-modal').style.display = 'none'; }
+function hideUserModal() {
+    document.getElementById('user-modal').style.display = 'none';
+}
 
 async function handleUserFormSubmit(event) {
     event.preventDefault();
@@ -148,6 +164,7 @@ async function handleUserTableActions(event) {
     const button = event.target.closest('button.btn-action');
     if (!button) return;
     const userId = button.dataset.id;
+
     if (button.classList.contains('btn-edit')) {
         try {
             const user = await fetchAPI(`/api/usuarios/${userId}`);
@@ -157,6 +174,7 @@ async function handleUserTableActions(event) {
         }
         return;
     }
+
     if (button.classList.contains('btn-deactivate')) {
         if (confirm('¿Seguro que quieres DESACTIVAR este usuario?')) {
             try {
@@ -168,6 +186,7 @@ async function handleUserTableActions(event) {
         }
         return;
     }
+
     if (button.classList.contains('btn-activate')) {
         if (confirm('¿Seguro que quieres ACTIVAR este usuario?')) {
             try {
@@ -192,11 +211,18 @@ async function cargarUsuarios() {
         }
         usuarios.forEach(u => {
             const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
-            userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto || 'N/A'}</td><td>${u.rol}</td>
-                <td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td>
-                <td><button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
+            userList.innerHTML += `<tr>
+                <td>${u.id}</td>
+                <td>${u.username}</td>
+                <td>${u.nombreCompleto || 'N/A'}</td>
+                <td>${u.rol}</td>
+                <td>${u.activo ? 'Sí' : 'No'}</td>
+                <td>${fecha}</td>
+                <td>
+                    <button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
                     ${u.activo ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>` : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`}
-                </td></tr>`;
+                </td>
+            </tr>`;
         });
     } catch (error) {
         userList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar usuarios: ${error.message}</td></tr>`;
@@ -207,13 +233,9 @@ async function cargarUsuarios() {
 
 async function cargarMensajes(page = 0) {
     currentPage = page;
-    
     const messageList = document.getElementById('messageList');
     messageList.innerHTML = `<tr><td colspan="7">Cargando página ${page + 1}...</td></tr>`;
-    
-    let url = currentLoteId 
-        ? `/api/mensajes/lote/${currentLoteId}?page=${page}&size=10` 
-        : `/api/mensajes?page=${page}&size=10`;
+    let url = currentLoteId ? `/api/mensajes/lote/${currentLoteId}?page=${page}&size=10` : `/api/mensajes?page=${page}&size=10`;
 
     try {
         const paginatedData = await fetchAPI(url);
@@ -226,7 +248,15 @@ async function cargarMensajes(page = 0) {
         }
         mensajes.forEach(m => {
             let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
-            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${m.observacion || 'N/A'}</td><td>${fechaMensaje}</td></tr>`;
+            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
+                <td>${m.id}</td>
+                <td>${m.nombreAsesor || 'N/A'}</td>
+                <td>${m.aplicacion || 'N/A'}</td>
+                <td>${m.texto}</td>
+                <td>${m.clasificacion}</td>
+                <td>${m.observacion || 'N/A'}</td>
+                <td>${fechaMensaje}</td>
+            </tr>`;
         });
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
     } catch (error) {
@@ -342,11 +372,9 @@ function pollLoteStatus(loteId) {
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
                 progressBar.style.backgroundColor = '#2ecc71';
                 setTimeout(() => {
-                    // --- LÓGICA CORREGIDA: Guarda el estado antes de cargar ---
                     localStorage.setItem('currentLoteId', loteId);
-                    currentLoteId = loteId;
                     showTargetView('mensajes');
-                    cargarMensajes(0); // Ahora cargará el lote recién guardado
+                    cargarMensajes(0, loteId);
                     cargarEstadisticas();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
