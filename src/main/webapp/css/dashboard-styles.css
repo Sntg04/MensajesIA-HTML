@@ -9,6 +9,7 @@
     --success-color: #2ecc71;
     --error-color: #e53935;
 }
+
 body, html {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0;
@@ -16,27 +17,33 @@ body, html {
     background-color: var(--bg-dark);
     color: var(--text-light);
 }
+
 .dashboard-container {
     display: flex;
     min-height: 100vh;
 }
+
 .sidebar {
     width: 220px;
     background-color: var(--bg-sidebar);
     padding: 25px 15px;
     border-right: 1px solid var(--border-color);
     flex-shrink: 0;
+    transition: all 0.3s ease-in-out;
 }
+
 .sidebar-title {
     font-size: 1.5em;
     color: white;
     text-align: center;
     margin: 0 0 30px 0;
 }
+
 .sidebar-nav {
     display: flex;
     flex-direction: column;
 }
+
 .nav-link {
     color: var(--text-muted);
     text-decoration: none;
@@ -46,20 +53,26 @@ body, html {
     font-weight: 500;
     transition: all 0.2s ease-in-out;
 }
+
 .nav-link:hover {
     background-color: var(--bg-content);
     color: white;
 }
+
 .nav-link.active {
     background-color: var(--accent-color);
     color: white;
     font-weight: bold;
 }
+
 .main-content {
     flex-grow: 1;
     padding: 20px 40px;
     overflow-x: hidden;
+    margin-left: 220px; /* Margen para la sidebar */
+    transition: all 0.3s ease-in-out;
 }
+
 .main-header {
     display: flex;
     justify-content: space-between;
@@ -68,6 +81,7 @@ body, html {
     padding-bottom: 20px;
     margin-bottom: 30px;
 }
+
 .logout-btn {
     background-color: #333;
     color: white;
@@ -78,53 +92,71 @@ body, html {
     font-weight: bold;
     transition: background-color 0.2s;
 }
+
 .logout-btn:hover {
     background-color: #444;
 }
+
 .content-section {
     display: none;
 }
+
 .content-section.active {
     display: block;
 }
+
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
 }
+
 h3 {
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 15px;
     margin-top: 0;
     font-size: 1.4em;
 }
+
 .table-container {
     max-width: 100%;
-    overflow-x: auto;
+    overflow-x: auto; /* Permite el scroll horizontal en la tabla */
 }
+
 table {
     width: 100%;
     border-collapse: collapse;
 }
+
 th, td {
     padding: 14px;
     border-bottom: 1px solid var(--border-color);
     text-align: left;
-    white-space: nowrap;
+    white-space: nowrap; /* Evita que el texto se parta en varias líneas */
 }
-td:nth-child(2) {
+
+td:nth-child(4) { /* Columna del Mensaje */
     white-space: normal;
     word-break: break-word;
 }
+
 thead th {
     background-color: #252525;
     font-weight: bold;
     color: white;
 }
+
 tbody tr:hover {
     background-color: #2a2a2a;
 }
+.row-alert {
+    background-color: rgba(229, 57, 53, 0.1); /* Fondo rojo sutil para alertas */
+}
+.row-alert:hover {
+    background-color: rgba(229, 57, 53, 0.2);
+}
+
 .btn-primary {
     background-color: var(--accent-color);
     color: white;
@@ -149,6 +181,7 @@ tbody tr:hover {
     cursor: pointer;
     transition: opacity 0.2s;
     color: white;
+    margin-right: 5px;
 }
 .btn-edit {
     background-color: #3498db;
@@ -159,6 +192,7 @@ tbody tr:hover {
 .btn-activate {
     background-color: var(--success-color);
 }
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -207,30 +241,35 @@ tbody tr:hover {
     cursor: pointer;
     font-weight: bold;
 }
-.error-message {
-    color: var(--error-color);
+
+.message, .error-message {
     font-weight: 500;
     min-height: 1em;
-}
-.message {
     margin-top: 15px;
     padding: 12px;
     border-radius: 5px;
 }
+.error-message {
+    color: var(--error-color);
+    background-color: rgba(229, 57, 53, 0.1);
+}
+.message {
+    color: var(--text-light);
+}
+
 #uploadForm button {
     background-color: var(--success-color);
 }
 
-/* --- Estilos Mejorados para Paginación --- */
+/* Estilos para la Paginación */
 .pagination-controls {
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 25px 0;
-    gap: 8px; /* Espacio entre elementos */
-    user-select: none; /* Evita que el texto se seleccione al hacer doble clic */
+    gap: 8px;
+    user-select: none;
 }
-
 .pagination-controls button {
     background-color: #2c2c2c;
     color: var(--text-muted);
@@ -242,34 +281,23 @@ tbody tr:hover {
     font-size: 1.1em;
     transition: all 0.2s ease-in-out;
 }
-
 .pagination-controls button:hover:not(:disabled) {
     background-color: var(--accent-color);
     color: white;
     border-color: var(--accent-color);
 }
-
-/* El botón activo (número de página) ya no es necesario, pero lo dejamos por si se usa en otro lado */
-.pagination-controls button.active {
-    background-color: var(--accent-color);
-    color: white;
-    font-weight: bold;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 8px rgba(3, 169, 244, 0.5);
-}
-
 .pagination-controls button:disabled {
     cursor: not-allowed;
     opacity: 0.4;
 }
-
 .pagination-controls .info-text {
     color: var(--text-muted);
     font-size: 0.95em;
     margin: 0 16px;
     font-weight: 500;
 }
-/* --- Estilos para la Barra de Progreso --- */
+
+/* Estilos para la Barra de Progreso */
 .progress-container {
     width: 100%;
     margin-top: 20px;
@@ -282,14 +310,11 @@ tbody tr:hover {
     overflow: hidden;
 }
 .progress-bar {
-    width: 0%; /* Inicia en 0% */
+    width: 0%;
     height: 100%;
     background-color: var(--accent-color);
     border-radius: 8px;
-    transition: width 0.4s ease-in-out; /* Animación suave */
-    text-align: center;
-    line-height: 20px;
-    color: white;
+    transition: width 0.4s ease-in-out;
 }
 .progress-text {
     display: block;
@@ -299,8 +324,7 @@ tbody tr:hover {
     color: var(--text-light);
 }
 
-
-/* Estilo para el nuevo botón de menú */
+/* --- Estilos para la Barra Lateral Plegable --- */
 .sidebar-toggle-btn {
     background: none;
     border: none;
@@ -310,25 +334,16 @@ tbody tr:hover {
     margin-right: 20px;
     padding: 0 10px;
 }
-
 .header-left {
     display: flex;
     align-items: center;
 }
-
-/* Transiciones suaves para la animación */
-.sidebar, .main-content {
-    transition: all 0.3s ease-in-out;
-}
-
-/* Cuando el contenedor principal tiene la clase 'sidebar-collapsed'... */
 .dashboard-container.sidebar-collapsed .sidebar {
-    width: 0; /* ...la barra lateral se encoge a cero. */
+    width: 0;
     padding: 25px 0;
-    overflow: hidden; /* Oculta el contenido mientras se encoge */
+    overflow: hidden;
     border-right: none;
 }
-
 .dashboard-container.sidebar-collapsed .main-content {
-    margin-left: 0; /* ...el contenido principal ocupa todo el ancho. */
+    margin-left: 0;
 }
