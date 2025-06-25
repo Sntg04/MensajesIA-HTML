@@ -3,14 +3,16 @@
     --bg-content: #121212;
     --bg-sidebar: #0a0a0a;
     --border-color: #2a2a2a;
-    --text-light: #f5f5f5;
-    --text-muted: #888888;
-    --accent-color: #dc2626; /* Rojo como color de acento principal */
-    --success-color: #16a34a;
+    --text-light: #ececec;
+    --text-muted: #a0a0a0;
+    --accent-color: #ffffff;      /* Acento principal: Blanco */
+    --success-color: #4ade80;     /* Verde para éxito */
+    --error-color: #f87171;       /* Rojo para errores */
+    --warn-color: #facc15;        /* Amarillo para alertas */
 }
 
 body, html {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 0;
     padding: 0;
     background-color: var(--bg-dark);
@@ -30,6 +32,7 @@ body, html {
     padding: 2rem 1rem;
     border-right: 1px solid var(--border-color);
     flex-shrink: 0;
+    transition: all 0.3s ease-in-out;
 }
 
 .sidebar-title {
@@ -39,11 +42,16 @@ body, html {
     margin: 0 0 2.5rem 0;
 }
 
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+}
+
 .nav-link {
     color: var(--text-muted);
     text-decoration: none;
     padding: 0.8rem 1.2rem;
-    margin-bottom: 0.5rem;
+    margin: 0.2rem 0;
     border-radius: 6px;
     font-weight: 500;
     transition: all 0.2s;
@@ -54,15 +62,16 @@ body, html {
 }
 .nav-link.active {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--bg-dark);
     font-weight: 600;
 }
 
-/* --- CONTENIDO PRINCIPAL (SIN ESPACIO GIGANTE) --- */
+/* --- CONTENIDO PRINCIPAL --- */
 .main-content {
-    flex-grow: 1; /* Esto hace que ocupe el resto del espacio */
+    flex-grow: 1;
     padding: 2rem 3rem;
     overflow-y: auto;
+    /* Se elimina el margin-left para que flexbox lo controle todo */
 }
 
 .main-header {
@@ -98,6 +107,34 @@ h2 {
 h3 {
     margin: 0;
     font-size: 1.5em;
+}
+
+/* --- Estilos para la Barra Lateral Plegable --- */
+.sidebar-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.6em;
+    cursor: pointer;
+    margin-right: 1.5rem;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.sidebar-toggle-btn:hover {
+    color: var(--text-light);
+}
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+.dashboard-container.sidebar-collapsed .sidebar {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    overflow: hidden;
+    border: none;
 }
 
 /* --- TABLAS --- */
@@ -138,10 +175,10 @@ tbody tr:hover {
     background-color: #282828;
 }
 .row-alert {
-    border-left: 3px solid var(--accent-color);
-}
+    background-color: rgba(220, 38, 38, 0.1);
+} /* Tono rojo sutil para alertas */
 
-/* --- BOTONES --- */
+/* --- BOTONES Y OTROS ELEMENTOS --- */
 .btn {
     padding: 0.6rem 1.2rem;
     border-radius: 6px;
@@ -158,17 +195,16 @@ tbody tr:hover {
 }
 .btn-primary {
     background-color: var(--accent-color);
+    color: var(--bg-dark);
     border-color: var(--accent-color);
-    color: white;
 }
 .btn-primary:hover {
-    background-color: #f87171;
-    border-color: #f87171;
+    background-color: #cccccc;
 }
 .btn-secondary {
-    background-color: #4a4a4a;
+    background-color: #333;
     color: var(--text-light);
-    border-color: #666;
+    border-color: #444;
 }
 .btn-success {
     background-color: var(--success-color);
@@ -192,11 +228,7 @@ tbody tr:hover {
 .btn-activate {
     background-color: var(--success-color);
 }
-.btn-action:hover {
-    opacity: 0.8;
-}
 
-/* --- OTROS ELEMENTOS --- */
 .card, .stats-card {
     background-color: var(--bg-content);
     padding: 2rem;
@@ -280,12 +312,8 @@ tbody tr:hover {
 }
 .pagination-controls button:hover:not(:disabled) {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--bg-dark);
     border-color: var(--accent-color);
-}
-.pagination-controls button.active {
-    background-color: var(--accent-color);
-    color: white;
 }
 .pagination-controls button:disabled {
     cursor: not-allowed;

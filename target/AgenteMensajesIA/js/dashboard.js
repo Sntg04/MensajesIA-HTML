@@ -18,6 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
 
+    // Aplica el estado de la barra lateral guardado.
+    if (localStorage.getItem('sidebarState') === 'collapsed') {
+        document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
+    }
+
     // Recupera el estado guardado del lote.
     currentLoteId = localStorage.getItem('currentLoteId');
 
@@ -42,6 +47,7 @@ function setupUI() {
 function setupEventListeners() {
     document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
     document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
+    document.getElementById('sidebar-toggle').addEventListener('click', handleSidebarToggle);
     document.getElementById('export-excel-btn').addEventListener('click', exportarMensajes);
     document.getElementById('show-create-user-modal').addEventListener('click', () => showUserModal());
     document.getElementById('cancel-user-modal').addEventListener('click', hideUserModal);
@@ -49,6 +55,16 @@ function setupEventListeners() {
     document.getElementById('userList').addEventListener('click', handleUserTableActions);
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
     document.getElementById('pagination-container').addEventListener('click', handlePaginationClick);
+}
+
+/**
+ * Gestiona el clic en el botón de menú para ocultar/mostrar la barra lateral y guarda la preferencia.
+ */
+function handleSidebarToggle() {
+    const container = document.querySelector('.dashboard-container');
+    container.classList.toggle('sidebar-collapsed');
+    const isCollapsed = container.classList.contains('sidebar-collapsed');
+    localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
 }
 
 /**
@@ -74,7 +90,6 @@ function switchView(targetId) {
         cargarMensajes(0);
     }
 }
-
 
 /**
  * Función central para realizar todas las llamadas a la API.
@@ -355,11 +370,11 @@ function pollLoteStatus(loteId) {
             if (statusResult.status === 'COMPLETADO') {
                 clearInterval(intervalId);
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
-                progressBar.style.backgroundColor = '#2ecc71';
+                progressBar.style.backgroundColor = 'var(--success-color)';
                 setTimeout(() => {
                     localStorage.setItem('currentLoteId', loteId);
                     showTargetView('mensajes');
-                    cargarMensajes(0, loteId);
+                    cargarMensajes(0);
                     cargarEstadisticas();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
@@ -369,7 +384,7 @@ function pollLoteStatus(loteId) {
             } else if (statusResult.status === 'FALLIDO') {
                 clearInterval(intervalId);
                 uploadMessage.textContent = 'Error: El procesamiento del archivo en el servidor ha fallado.';
-                progressBar.style.backgroundColor = '#ef4444';
+                progressBar.style.backgroundColor = 'var(--error-color)';
             } else {
                 uploadMessage.textContent = `Procesando...`;
             }
