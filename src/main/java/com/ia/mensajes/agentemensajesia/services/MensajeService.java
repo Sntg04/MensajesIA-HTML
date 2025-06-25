@@ -29,7 +29,6 @@ public class MensajeService {
      * actualiza el progreso y los guarda en la base de datos.
      * @param inputStream El stream de datos del archivo .xlsx.
      * @param loteId El identificador único para el lote de procesamiento.
-     * @throws Exception Si ocurre un error al leer o procesar el archivo.
      */
     public void procesarYGuardarMensajesDesdeExcel(InputStream inputStream, String loteId) throws Exception {
         
@@ -51,7 +50,7 @@ public class MensajeService {
 
         List<Mensaje> mensajesProcesados = rows.parallelStream()
             .map(row -> {
-                String textoMensaje = getCellValueAsString(row.getCell(7), formatter);
+                String textoMensaje = getCellValueAsString(row.getCell(7), formatter); // Columna H
                 if (textoMensaje == null || textoMensaje.isEmpty()) return null;
 
                 // Actualizar progreso de forma segura para hilos
@@ -59,17 +58,17 @@ public class MensajeService {
                 int progress = (int) (((double) count / totalRows) * 100);
                 MensajeResource.jobStatuses.get(loteId).setProgress(progress);
 
-                // Extracción de datos
-                String app = getCellValueAsString(row.getCell(0), formatter);
-                String idCliente = getCellValueAsString(row.getCell(1), formatter);
-                String asesor = getCellValueAsString(row.getCell(9), formatter);
-                LocalDateTime fechaHora = getCellLocalDateTime(row.getCell(10), formatter);
+                // Extracción de datos de las columnas correctas
+                String app = getCellValueAsString(row.getCell(0), formatter);       // Columna A
+                String idCliente = getCellValueAsString(row.getCell(1), formatter); // Columna B
+                String asesor = getCellValueAsString(row.getCell(9), formatter);      // Columna J
+                LocalDateTime fechaHora = getCellLocalDateTime(row.getCell(10), formatter); // Columna K
                 
                 // Clasificación con IA
                 ClasificadorMensajes clasificador = ClasificadorMensajes.getInstance();
                 ResultadoClasificacion resultado = clasificador.clasificar(textoMensaje);
 
-                // Creación de la entidad
+                // Creación de la entidad Mensaje
                 Mensaje nuevoMensaje = new Mensaje();
                 nuevoMensaje.setAplicacion(app);
                 nuevoMensaje.setIdCliente(idCliente);
@@ -83,9 +82,10 @@ public class MensajeService {
 
                 return nuevoMensaje;
             })
-            .filter(Objects::nonNull)
+            .filter(Objects::nonNull) // Filtra las filas que no tenían texto
             .collect(Collectors.toList());
 
+        // Guarda todos los mensajes procesados en una sola transacción
         if (!mensajesProcesados.isEmpty()) {
             mensajeDAO.guardarVarios(mensajesProcesados);
         }
@@ -109,7 +109,7 @@ public class MensajeService {
     }
 
     /**
-     * Obtiene una lista paginada de todos los mensajes.
+     * Obtiene una lista paginada de todos los mensajes históricos.
      */
     public PaginatedResponse<Mensaje> obtenerMensajesPaginado(int numeroPagina, int tamanoPagina) {
         long totalMensajes = mensajeDAO.contarTotalMensajes();
@@ -124,7 +124,7 @@ public class MensajeService {
     }
 
     /**
-     * Obtiene una lista paginada de mensajes filtrados por lote.
+     * Obtiene una lista paginada de mensajes filtrados por un lote específico.
      */
     public PaginatedResponse<Mensaje> obtenerMensajesPaginadoPorLote(String loteId, int numeroPagina, int tamanoPagina) {
         long totalMensajes = mensajeDAO.contarTotalMensajesPorLote(loteId);
@@ -139,7 +139,7 @@ public class MensajeService {
     }
 
     /**
-     * Obtiene todos los mensajes (usado para la exportación a Excel).
+     * Obtiene todos los mensajes (usado principalmente para la exportación a Excel).
      */
     public List<Mensaje> obtenerTodosLosMensajes() {
         return mensajeDAO.buscarTodos();

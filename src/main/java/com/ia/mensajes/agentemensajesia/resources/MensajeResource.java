@@ -139,7 +139,7 @@ public class MensajeResource {
         } catch(Exception e) {
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity(Map.of("error", "Error al obtener mensajes del lote " + loteId))
+                           .entity(java.util.Map.of("error", "Error al obtener mensajes del lote " + loteId))
                            .build();
         }
     }

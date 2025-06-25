@@ -18,6 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
 
+    // Aplica el estado de la barra lateral guardado.
+    if (localStorage.getItem('sidebarState') === 'collapsed') {
+        document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
+    }
+
     // Adapta la vista según el rol del usuario.
     const userRole = localStorage.getItem('userRole');
     if (userRole === 'admin') {
@@ -37,6 +42,7 @@ function setupUI() {
 function setupEventListeners() {
     document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
     document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
+    document.getElementById('sidebar-toggle').addEventListener('click', handleSidebarToggle);
     document.getElementById('export-excel-btn').addEventListener('click', exportarMensajes);
     document.getElementById('show-create-user-modal').addEventListener('click', () => showUserModal());
     document.getElementById('cancel-user-modal').addEventListener('click', hideUserModal);
@@ -47,10 +53,20 @@ function setupEventListeners() {
 }
 
 /**
+ * Gestiona el clic en el botón de menú para ocultar/mostrar la barra lateral y guarda la preferencia.
+ */
+function handleSidebarToggle() {
+    const container = document.querySelector('.dashboard-container');
+    container.classList.toggle('sidebar-collapsed');
+    const isCollapsed = container.classList.contains('sidebar-collapsed');
+    localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
+}
+
+
+/**
  * Cambia la vista activa en el panel principal y maneja la lógica de reseteo de la vista de mensajes.
  */
 function switchView(targetId) {
-    // Evita recargar si la vista ya está activa
     const activeContent = document.querySelector('.content-section.active');
     if (activeContent && activeContent.id === targetId) return;
 
@@ -60,12 +76,12 @@ function switchView(targetId) {
     document.getElementById(targetId).classList.add('active');
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
     
-    // Si se hace clic en la pestaña "Mensajes Procesados", reseteamos la vista para mostrar todos los lotes.
     if (targetId === 'mensajes') {
         currentLoteId = null; 
         cargarMensajes(0);
     }
 }
+
 
 /**
  * Función central para realizar todas las llamadas a la API, incluyendo el token de autorización.
