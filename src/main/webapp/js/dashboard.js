@@ -17,13 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
-
-    // Aplica el estado de la barra lateral guardado.
-    if (localStorage.getItem('sidebarState') === 'collapsed') {
-        document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
-    }
-
-    // Adapta la vista según el rol del usuario.
     const userRole = localStorage.getItem('userRole');
     if (userRole === 'admin') {
         switchView('usuarios');
@@ -32,7 +25,6 @@ function setupUI() {
         document.querySelector('.nav-link[data-target="usuarios"]').style.display = 'none';
         switchView('mensajes');
     }
-    
     cargarEstadisticas();
 }
 
@@ -42,7 +34,6 @@ function setupUI() {
 function setupEventListeners() {
     document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
     document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
-    document.getElementById('sidebar-toggle').addEventListener('click', handleSidebarToggle);
     document.getElementById('export-excel-btn').addEventListener('click', exportarMensajes);
     document.getElementById('show-create-user-modal').addEventListener('click', () => showUserModal());
     document.getElementById('cancel-user-modal').addEventListener('click', hideUserModal);
@@ -53,38 +44,23 @@ function setupEventListeners() {
 }
 
 /**
- * Gestiona el clic en el botón de menú para ocultar/mostrar la barra lateral y guarda la preferencia.
- */
-function handleSidebarToggle() {
-    const container = document.querySelector('.dashboard-container');
-    container.classList.toggle('sidebar-collapsed');
-    const isCollapsed = container.classList.contains('sidebar-collapsed');
-    localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
-}
-
-
-/**
  * Cambia la vista activa en el panel principal y maneja la lógica de reseteo de la vista de mensajes.
  */
 function switchView(targetId) {
     const activeContent = document.querySelector('.content-section.active');
     if (activeContent && activeContent.id === targetId) return;
-
     document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-
     document.getElementById(targetId).classList.add('active');
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
-    
     if (targetId === 'mensajes') {
         currentLoteId = null; 
         cargarMensajes(0);
     }
 }
 
-
 /**
- * Función central para realizar todas las llamadas a la API, incluyendo el token de autorización.
+ * Función central para realizar todas las llamadas a la API.
  */
 async function fetchAPI(url, options = {}) {
     const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
@@ -105,11 +81,9 @@ async function fetchAPI(url, options = {}) {
     return response.blob();
 }
 
-// --- SECCIÓN: GESTIÓN DE USUARIOS ---
-
+// --- GESTIÓN DE USUARIOS ---
 function showUserModal(user = null) {
-    const form = document.getElementById('user-form');
-    form.reset();
+    const form = document.getElementById('user-form'); form.reset();
     document.getElementById('form-error').textContent = '';
     const isEditing = !!user;
     document.getElementById('modal-title').textContent = isEditing ? 'Editar Usuario' : 'Crear Usuario';
@@ -122,9 +96,7 @@ function showUserModal(user = null) {
     document.getElementById('user-modal').style.display = 'flex';
 }
 
-function hideUserModal() {
-    document.getElementById('user-modal').style.display = 'none';
-}
+function hideUserModal() { document.getElementById('user-modal').style.display = 'none'; }
 
 async function handleUserFormSubmit(event) {
     event.preventDefault();
@@ -135,58 +107,43 @@ async function handleUserFormSubmit(event) {
         nombreCompleto: document.getElementById('nombreCompleto').value,
         rol: document.getElementById('rol').value
     };
-    if (!isEditing) {
-        userData.username = document.getElementById('username').value;
-    }
-    if (password) {
-        userData.passwordHash = password;
-    }
+    if (!isEditing) { userData.username = document.getElementById('username').value; }
+    if (password) { userData.passwordHash = password; }
     const url = isEditing ? `/api/usuarios/${id}` : '/api/usuarios';
     const method = isEditing ? 'PUT' : 'POST';
     try {
         await fetchAPI(url, { method, body: JSON.stringify(userData) });
         hideUserModal();
         cargarUsuarios();
-    } catch (error) {
-        document.getElementById('form-error').textContent = `Error: ${error.message}`;
-    }
+    } catch (error) { document.getElementById('form-error').textContent = `Error: ${error.message}`; }
 }
 
 async function handleUserTableActions(event) {
     const button = event.target.closest('button.btn-action');
     if (!button) return;
     const userId = button.dataset.id;
-
     if (button.classList.contains('btn-edit')) {
         try {
             const user = await fetchAPI(`/api/usuarios/${userId}`);
             if (user) showUserModal(user);
-        } catch (error) {
-            alert(`Error al cargar datos del usuario: ${error.message}`);
-        }
+        } catch (error) { alert(`Error al cargar datos del usuario: ${error.message}`); }
         return;
     }
-
     if (button.classList.contains('btn-deactivate')) {
         if (confirm('¿Seguro que quieres DESACTIVAR este usuario?')) {
             try {
                 await fetchAPI(`/api/usuarios/${userId}/desactivar`, { method: 'DELETE' });
                 cargarUsuarios();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            } catch (error) { alert(`Error: ${error.message}`); }
         }
         return;
     }
-
     if (button.classList.contains('btn-activate')) {
         if (confirm('¿Seguro que quieres ACTIVAR este usuario?')) {
             try {
                 await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ activo: true }) });
                 cargarUsuarios();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            } catch (error) { alert(`Error: ${error.message}`); }
         }
     }
 }
@@ -203,35 +160,18 @@ async function cargarUsuarios() {
         }
         usuarios.forEach(u => {
             const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
-            userList.innerHTML += `<tr>
-                <td>${u.id}</td>
-                <td>${u.username}</td>
-                <td>${u.nombreCompleto || 'N/A'}</td>
-                <td>${u.rol}</td>
-                <td>${u.activo ? 'Sí' : 'No'}</td>
-                <td>${fecha}</td>
-                <td>
-                    <button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
-                    ${u.activo ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>` : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`}
-                </td>
-            </tr>`;
+            userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto || 'N/A'}</td><td>${u.rol}</td><td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td><td><button class="btn-action btn-edit" data-id="${u.id}">Editar</button>${u.activo ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>` : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`}</td></tr>`;
         });
-    } catch (error) {
-        userList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar usuarios: ${error.message}</td></tr>`;
-    }
+    } catch (error) { userList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar usuarios: ${error.message}</td></tr>`; }
 }
 
-// --- SECCIÓN: GESTIÓN DE MENSAJES ---
-
+// --- GESTIÓN DE MENSAJES ---
 async function cargarMensajes(page = 0, loteId = null) {
     currentPage = page;
-    if (loteId !== null) {
-        currentLoteId = loteId;
-    }
+    if (loteId !== null) { currentLoteId = loteId; }
     const messageList = document.getElementById('messageList');
     messageList.innerHTML = `<tr><td colspan="7">Cargando página ${page + 1}...</td></tr>`;
     let url = currentLoteId ? `/api/mensajes/lote/${currentLoteId}?page=${page}&size=10` : `/api/mensajes?page=${page}&size=10`;
-
     try {
         const paginatedData = await fetchAPI(url);
         const mensajes = paginatedData.content;
@@ -243,74 +183,37 @@ async function cargarMensajes(page = 0, loteId = null) {
         }
         mensajes.forEach(m => {
             let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
-            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
-                <td>${m.id}</td>
-                <td>${m.nombreAsesor || 'N/A'}</td>
-                <td>${m.aplicacion || 'N/A'}</td>
-                <td>${m.texto}</td>
-                <td>${m.clasificacion}</td>
-                <td>${m.observacion || 'N/A'}</td>
-                <td>${fechaMensaje}</td>
-            </tr>`;
+            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${m.observacion || 'N/A'}</td><td>${fechaMensaje}</td></tr>`;
         });
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
-    } catch (error) {
-        messageList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`;
-    }
+    } catch (error) { messageList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`; }
 }
 
 function renderizarPaginacion(totalPages, currentPage) {
     const container = document.getElementById('pagination-container');
     container.innerHTML = '';
     if (totalPages <= 1) return;
-    const prevButton = document.createElement('button');
-    prevButton.innerHTML = '&laquo;';
-    prevButton.title = 'Página Anterior';
-    prevButton.dataset.page = currentPage - 1;
-    prevButton.disabled = currentPage === 0;
-    container.appendChild(prevButton);
-    const info = document.createElement('span');
-    info.className = 'info-text';
-    info.textContent = `Página ${currentPage + 1} de ${totalPages}`;
-    container.appendChild(info);
-    const nextButton = document.createElement('button');
-    nextButton.innerHTML = '&raquo;';
-    nextButton.title = 'Página Siguiente';
-    nextButton.dataset.page = currentPage + 1;
-    nextButton.disabled = currentPage >= totalPages - 1;
-    container.appendChild(nextButton);
+    const prevButton = document.createElement('button'); prevButton.innerHTML = '&laquo;'; prevButton.title = 'Página Anterior'; prevButton.dataset.page = currentPage - 1; prevButton.disabled = currentPage === 0; container.appendChild(prevButton);
+    const info = document.createElement('span'); info.className = 'info-text'; info.textContent = `Página ${currentPage + 1} de ${totalPages}`; container.appendChild(info);
+    const nextButton = document.createElement('button'); nextButton.innerHTML = '&raquo;'; nextButton.title = 'Página Siguiente'; nextButton.dataset.page = currentPage + 1; nextButton.disabled = currentPage >= totalPages - 1; container.appendChild(nextButton);
 }
 
 function handlePaginationClick(event) {
     const button = event.target.closest('button');
     if (!button || button.disabled) return;
     const page = parseInt(button.dataset.page, 10);
-    if (!isNaN(page)) {
-        cargarMensajes(page);
-    }
+    if (!isNaN(page)) { cargarMensajes(page); }
 }
 
 async function exportarMensajes() {
     const button = document.getElementById('export-excel-btn');
-    button.textContent = 'Generando...';
-    button.disabled = true;
+    button.textContent = 'Generando...'; button.disabled = true;
     try {
         const blob = await fetchAPI('/api/mensajes/export');
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `Reporte_Mensajes_${new Date().toISOString().split('T')[0]}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-    } catch (error) {
-        alert(`Error al exportar: ${error.message}`);
-    } finally {
-        button.textContent = 'Exportar a Excel';
-        button.disabled = false;
-    }
+        const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = `Reporte_Mensajes_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); a.remove();
+    } catch (error) { alert(`Error al exportar: ${error.message}`); } finally { button.textContent = 'Exportar a Excel'; button.disabled = false; }
 }
 
 async function cargarEstadisticas() {
@@ -319,13 +222,12 @@ async function cargarEstadisticas() {
     try {
         const stats = await fetchAPI('/api/mensajes/stats');
         statsContainer.innerHTML = `<p><strong>Total de Mensajes:</strong> ${stats.totalMensajes || 0}</p>`;
-    } catch (error) {
-        statsContainer.innerHTML = `<p class="error-message">Error al cargar estadísticas.</p>`;
-    }
+    } catch (error) { statsContainer.innerHTML = `<p class="error-message">Error al cargar estadísticas.</p>`; }
 }
 
+// --- LÓGICA DE CARGA DE ARCHIVO ---
 async function handleFileUpload(event) {
-    event.preventDefault();
+    event.preventDefault(); // <-- ESTA LÍNEA ES CRUCIAL PARA EVITAR LA RECARGA DE LA PÁGINA
     const fileInput = document.getElementById('fileInput');
     const uploadMessage = document.getElementById('uploadMessage');
     const progressContainer = document.getElementById('progress-container');
