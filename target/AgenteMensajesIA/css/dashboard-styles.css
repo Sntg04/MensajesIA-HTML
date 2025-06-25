@@ -1,13 +1,13 @@
 :root {
-    --bg-dark: #000000;
-    --bg-content: #1a1a1a;
-    --bg-sidebar: #0f0f0f;
-    --border-color: #333333;
-    --text-light: #ffffff;
-    --text-muted: #a0a0a0;
-    --accent-color: #ffffff;
-    --success-color: #22c55e;
-    --error-color: #ef4444;
+    --bg-dark: #111827;
+    --bg-content: #1F2937;
+    --bg-sidebar: #0D1117;
+    --border-color: #374151;
+    --text-light: #F9FAFB;
+    --text-muted: #9CA3AF;
+    --accent-color: #3B82F6;
+    --success-color: #10B981;
+    --error-color: #EF4444;
 }
 
 body, html {
@@ -24,14 +24,24 @@ body, html {
     min-height: 100vh;
 }
 
-/* --- BARRA LATERAL (FIJA Y CORREGIDA) --- */
+/* --- BARRA LATERAL (FIJA) --- */
 .sidebar {
     width: 240px;
     background-color: var(--bg-sidebar);
     padding: 2rem 1rem;
     border-right: 1px solid var(--border-color);
     flex-shrink: 0;
-    transition: all 0.3s ease-in-out; /* <-- Animación suave */
+    transition: all 0.3s ease-in-out;
+}
+
+/* --- CONTENIDO PRINCIPAL (CORREGIDO) --- */
+.main-content {
+    flex-grow: 1;
+    padding: 2rem 3rem;
+    overflow-y: auto;
+    /* Esta es la clave: el margen inicial coincide con el ancho de la sidebar */
+    margin-left: 240px;
+    transition: all 0.3s ease-in-out;
 }
 
 .sidebar-title {
@@ -64,15 +74,6 @@ body, html {
     background-color: var(--accent-color);
     color: var(--bg-dark);
     font-weight: 600;
-}
-
-/* --- CONTENIDO PRINCIPAL --- */
-.main-content {
-    flex-grow: 1;
-    padding: 2rem 3rem;
-    overflow-y: auto;
-    margin-left: 240px; /* Margen para la sidebar */
-    transition: all 0.3s ease-in-out; /* <-- Animación suave */
 }
 
 .main-header {
@@ -109,40 +110,7 @@ h3 {
     font-size: 1.5em;
 }
 
-
-/* --- ESTILOS PARA LA BARRA LATERAL PLEGABLE --- */
-.sidebar-toggle-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.6em;
-    cursor: pointer;
-    margin-right: 1.5rem;
-    padding: 0;
-    line-height: 1;
-    transition: color 0.2s ease-in-out;
-}
-.sidebar-toggle-btn:hover {
-    color: var(--text-light);
-}
-.header-left {
-    display: flex;
-    align-items: center;
-}
-
-.dashboard-container.sidebar-collapsed .sidebar {
-    width: 0;
-    padding-left: 0;
-    padding-right: 0;
-    overflow: hidden;
-    border: none;
-}
-.dashboard-container.sidebar-collapsed .main-content {
-    margin-left: 0;
-}
-
-
-/* --- ESTILOS DE TABLA --- */
+/* El resto de los estilos (tablas, botones, etc.) no necesitan cambios */
 .table-container {
     overflow-x: auto;
     border: 1px solid var(--border-color);
@@ -170,75 +138,15 @@ td:nth-child(4), td:nth-child(6) {
     min-width: 250px;
 }
 thead th {
-    background-color: #222222;
+    background-color: #263143;
     font-weight: 600;
     font-size: 0.85em;
     color: var(--text-light);
     text-transform: uppercase;
 }
 tbody tr:hover {
-    background-color: #282828;
+    background-color: #2a384e;
 }
 .row-alert {
-    background-color: rgba(160, 160, 160, 0.1);
-}
-
-/* --- BOTONES Y OTROS ELEMENTOS --- */
-.btn {
-    padding: 0.6rem 1.2rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s;
-    border: 1px solid var(--border-color);
-}
-.btn-primary {
-    background-color: var(--text-light);
-    color: var(--bg-dark);
-    border-color: var(--text-light);
-}
-.btn-primary:hover {
-    background-color: #cccccc;
-}
-.btn-secondary {
-    background-color: #4a4a4a;
-    color: var(--text-light);
-    border-color: #666;
-}
-.btn-secondary:hover {
-    background-color: #5a5a5a;
-}
-.btn-success {
-    background-color: var(--success-color);
-    color: var(--bg-dark);
-    border-color: var(--success-color);
-    font-weight: bold;
-}
-.logout-btn {
-    background-color: var(--bg-content);
-    color: var(--text-muted);
-}
-.logout-btn:hover {
-    background-color: #333;
-    color: white;
-}
-.btn-action {
-    color: white;
-    padding: 6px 12px;
-    font-size: 0.9em;
-    border-radius: 4px;
-    margin-right: 5px;
-    border: none;
-}
-.btn-edit {
-    background-color: #555;
-}
-.btn-deactivate {
-    background-color: #777;
-}
-.btn-activate {
-    background-color: #999;
-}
-.btn-action:hover {
-    opacity: 0.8;
+    background-color: rgba(239, 68, 68, 0.1);
 }
