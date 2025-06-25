@@ -9,7 +9,7 @@
 <body>
     <div class="dashboard-container">
         <aside class="sidebar">
-            <h1 class="sidebar-title">Menú</h1>
+            <h1 class="sidebar-title">Agente IA</h1>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-link" data-target="mensajes">Mensajes Procesados</a>
                 <a href="#" class="nav-link" data-target="usuarios">Gestionar Usuarios</a>
@@ -27,52 +27,66 @@
                 <button id="logoutButton" class="logout-btn">Cerrar Sesión</button>
             </header>
 
-            <div id="mensajes" class="content-section">
-                 <div class="section-header"><h3>Mensajes Procesados</h3><button id="export-excel-btn" class="btn-primary">Exportar a Excel</button></div>
-                <div id="messageError" class="error-message"></div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Asesor</th>
-                                <th>Aplicación</th>
-                                <th>Mensaje</th>
-                                <th>Clasificación</th>
-                                <th>Observación</th>
-                                <th>Fecha del Mensaje</th>
-                            </tr>
-                        </thead>
-                        <tbody id="messageList"></tbody>
-                    </table>
-                </div>
-                <div id="pagination-container" class="pagination-controls"></div>
-            </div>
-            
-            <div id="usuarios" class="content-section">
-                <div class="section-header"><h3>Gestión de Usuarios</h3><button id="show-create-user-modal" class="btn-primary">Crear Nuevo Usuario</button></div>
-                <div id="userError" class="error-message"></div>
-                <div class="table-container">
-                    <table>
-                        <thead><tr><th>ID</th><th>Username</th><th>Nombre</th><th>Rol</th><th>Activo</th><th>Creación</th><th>Acciones</th></tr></thead>
-                        <tbody id="userList"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="estadisticas" class="content-section">
-                <h3>Estadísticas de Mensajes</h3><div id="messageStats"></div>
-            </div>
-
-            <div id="carga" class="content-section">
-                <h3>Cargar Archivo de Mensajes (.xlsx)</h3>
-                <form id="uploadForm"><input type="file" id="fileInput" name="file" accept=".xlsx" required><button type="submit">Cargar y Procesar</button></form>
-                <div id="uploadMessage" class="message"></div>
-                <div id="progress-container" class="progress-container" style="display: none;">
-                    <div class="progress-bar-background">
-                        <div id="progress-bar" class="progress-bar"></div>
+            <div class="content-wrapper">
+                <div id="mensajes" class="content-section">
+                    <div class="section-header">
+                        <h3>Mensajes Procesados</h3>
+                        <button id="export-excel-btn" class="btn btn-primary">Exportar a Excel</button>
                     </div>
-                    <span id="progress-text" class="progress-text">0%</span>
+                    <div id="messageError" class="error-message"></div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Asesor</th>
+                                    <th>Aplicación</th>
+                                    <th>Mensaje</th>
+                                    <th>Clasificación</th>
+                                    <th>Observación</th>
+                                    <th>Fecha del Mensaje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="messageList"></tbody>
+                        </table>
+                    </div>
+                    <div id="pagination-container" class="pagination-controls"></div>
+                </div>
+                
+                <div id="usuarios" class="content-section">
+                    <div class="section-header">
+                        <h3>Gestión de Usuarios</h3>
+                        <button id="show-create-user-modal" class="btn btn-primary">Crear Nuevo Usuario</button>
+                    </div>
+                    <div id="userError" class="error-message"></div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Username</th><th>Nombre</th><th>Rol</th><th>Activo</th><th>Creación</th><th>Acciones</th></tr></thead>
+                            <tbody id="userList"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="estadisticas" class="content-section">
+                    <h3>Estadísticas de Mensajes</h3>
+                    <div class="stats-card" id="messageStats"></div>
+                </div>
+
+                <div id="carga" class="content-section">
+                    <h3>Cargar Archivo de Mensajes (.xlsx)</h3>
+                    <div class="card">
+                        <form id="uploadForm">
+                            <input type="file" id="fileInput" name="file" accept=".xlsx" required>
+                            <button type="submit" class="btn btn-success">Cargar y Procesar</button>
+                        </form>
+                        <div id="uploadMessage" class="message"></div>
+                        <div id="progress-container" class="progress-container" style="display: none;">
+                            <div class="progress-bar-background">
+                                <div id="progress-bar" class="progress-bar"></div>
+                            </div>
+                            <span id="progress-text" class="progress-text">0%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -87,7 +101,7 @@
                 <div class="form-group"><label for="nombreCompleto">Nombre Completo</label><input type="text" id="nombreCompleto" required></div>
                 <div class="form-group"><label for="password">Contraseña</label><input type="password" id="password" placeholder="Dejar en blanco para no cambiar"></div>
                 <div class="form-group"><label for="rol">Rol</label><select id="rol" required><option value="calidad">Calidad</option><option value="admin">Admin</option></select></div>
-                <div class="form-actions"><button type="submit" class="btn-primary">Guardar</button><button type="button" id="cancel-user-modal" class="btn-secondary">Cancelar</button></div>
+                <div class="form-actions"><button type="submit" class="btn btn-primary">Guardar</button><button type="button" id="cancel-user-modal" class="btn-secondary">Cancelar</button></div>
                 <div id="form-error" class="error-message"></div>
             </form>
         </div>

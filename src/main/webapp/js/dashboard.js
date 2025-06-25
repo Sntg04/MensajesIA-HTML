@@ -62,37 +62,28 @@ function handleSidebarToggle() {
     localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
 }
 
-
-// --- INICIO DE LA CORRECCIÓN ---
-
 /**
- * Función de ayuda que SOLO se encarga del cambio visual de la pestaña.
- */
-function showTargetView(targetId) {
-    document.querySelectorAll('.content-section.active').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
-    document.getElementById(targetId).classList.add('active');
-    document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
-}
-
-/**
- * Cambia la vista activa y ejecuta la lógica correspondiente.
+ * Cambia la vista activa en el panel principal y maneja la lógica de reseteo de la vista de mensajes.
  */
 function switchView(targetId) {
-    showTargetView(targetId); // Primero, cambia la vista.
+    const activeContent = document.querySelector('.content-section.active');
+    if (activeContent && activeContent.id === targetId) return;
+
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+    document.getElementById(targetId).classList.add('active');
+    document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
     
-    // Si se hace clic en la pestaña "Mensajes Procesados", reseteamos la vista para mostrar todos los lotes.
     if (targetId === 'mensajes') {
-        currentLoteId = null; // Olvidar el lote específico que se estaba viendo.
-        cargarMensajes(0);    // Cargar la primera página de todos los mensajes.
+        currentLoteId = null; 
+        cargarMensajes(0);
     }
 }
 
-// --- FIN DE LA CORRECCIÓN ---
-
 
 /**
- * Función central para realizar todas las llamadas a la API.
+ * Función central para realizar todas las llamadas a la API, incluyendo el token de autorización.
  */
 async function fetchAPI(url, options = {}) {
     const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
@@ -229,7 +220,6 @@ async function cargarMensajes(page = 0, loteId = null) {
             renderizarPaginacion(0, 0);
             return;
         }
-        // Se eliminan los atributos data-label
         mensajes.forEach(m => {
             let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
             messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${m.observacion || 'N/A'}</td><td>${fechaMensaje}</td></tr>`;
@@ -344,10 +334,8 @@ function pollLoteStatus(loteId) {
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
                 progressBar.style.backgroundColor = '#2ecc71';
                 setTimeout(() => {
-                    // --- LÓGICA CORREGIDA ---
-                    showTargetView('mensajes'); // Solo cambia la vista visualmente
+                    switchView('mensajes'); // Activa la pestaña de mensajes
                     cargarMensajes(0, loteId);   // Carga los datos del lote específico
-                    
                     cargarEstadisticas();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
