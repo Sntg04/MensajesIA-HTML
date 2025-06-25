@@ -1,13 +1,13 @@
 :root {
-    --bg-dark: #111827;
-    --bg-content: #1F2937;
-    --bg-sidebar: #0D1117;
-    --border-color: #374151;
-    --text-light: #F9FAFB;
-    --text-muted: #9CA3AF;
-    --accent-color: #3B82F6;
-    --success-color: #10B981;
-    --error-color: #EF4444;
+    --bg-dark: #000000;      /* Negro puro */
+    --bg-content: #1a1a1a;   /* Un gris muy oscuro para los paneles */
+    --bg-sidebar: #0f0f0f;   /* Un negro ligeramente más suave para la sidebar */
+    --border-color: #333333; /* Un gris oscuro para los bordes */
+    --text-light: #ffffff;   /* Blanco puro */
+    --text-muted: #a0a0a0;   /* Un gris claro para texto secundario */
+    --accent-color: #ffffff;  /* El acento principal será el blanco */
+    --success-color: #333;   /* Gris oscuro para éxito, combinado con texto blanco */
+    --error-color: #EF4444;   /* Rojo para errores */
 }
 
 body, html {
@@ -24,22 +24,13 @@ body, html {
     min-height: 100vh;
 }
 
-/* --- Barra Lateral y Contenido Principal --- */
+/* --- Barra Lateral (Fija) --- */
 .sidebar {
     width: 240px;
     background-color: var(--bg-sidebar);
     padding: 2rem 1rem;
     border-right: 1px solid var(--border-color);
     flex-shrink: 0;
-    transition: all 0.3s ease-in-out;
-}
-
-.main-content {
-    flex-grow: 1;
-    padding: 2rem 3rem;
-    overflow-y: auto;
-    margin-left: 240px;
-    transition: all 0.3s ease-in-out;
 }
 
 .sidebar-title {
@@ -72,52 +63,55 @@ body, html {
 
 .nav-link.active {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--bg-dark);
     font-weight: 600;
 }
 
-
-/* --- Estilos para la Barra Lateral Plegable (Versión Elegante) --- */
-.sidebar-toggle-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.6em;
-    cursor: pointer;
-    margin-right: 1.5rem;
-    padding: 0;
-    line-height: 1;
-    transition: color 0.2s ease-in-out;
-}
-.sidebar-toggle-btn:hover {
-    color: var(--text-light);
+/* --- Contenido Principal --- */
+.main-content {
+    flex-grow: 1;
+    padding: 2rem 3rem;
+    overflow-y: auto;
 }
 
-.header-left {
+.main-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 2rem;
 }
 
-.dashboard-container.sidebar-collapsed .sidebar {
-    width: 0;
-    padding: 2rem 0;
-    overflow: hidden;
-    border-right: none;
+h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
 }
 
-.dashboard-container.sidebar-collapsed .main-content {
-    margin-left: 0;
+.content-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
+.content-section {
+    display: none;
+}
 
-/* --- Estilos Generales --- */
-.main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-h2 { font-size: 1.8rem; font-weight: 600; }
-.content-wrapper { max-width: 1400px; margin: 0 auto; }
-.content-section { display: none; }
-.content-section.active { display: block; }
-.section-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); margin-bottom: 2rem; }
-h3 { margin: 0; font-size: 1.5em; }
+.content-section.active {
+    display: block;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+h3 {
+    margin: 0;
+    font-size: 1.5em;
+}
 
 /* --- Estilos de Tabla --- */
 .table-container {
@@ -127,42 +121,110 @@ h3 { margin: 0; font-size: 1.5em; }
     background-color: var(--bg-content);
 }
 
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 1rem 1.5rem; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-tbody tr:last-child td { border-bottom: none; }
-td { color: var(--text-muted); }
-td:nth-child(4), td:nth-child(6) { white-space: normal; min-width: 250px; } /* Mensaje y Observación */
-thead th { background-color: #263143; font-weight: 600; font-size: 0.85em; color: var(--text-light); text-transform: uppercase; }
-tbody tr:hover { background-color: #2a384e; }
-.row-alert { background-color: rgba(239, 68, 68, 0.1); }
-.row-alert:hover { background-color: rgba(239, 68, 68, 0.2); }
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
 
-/* --- Botones --- */
-.btn { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
-.btn-primary { background-color: var(--accent-color); color: white; }
-.btn-primary:hover { background-color: #60A5FA; }
-.btn-success { background-color: var(--success-color); color: white; }
-.btn-success:hover { background-color: #34D399; }
-.logout-btn { background-color: var(--bg-content); color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px 20px; font-weight: bold; border-radius: 5px; }
-.logout-btn:hover { background-color: #374151; color: white; }
-.btn-action { padding: 6px 12px; font-size: 0.9em; border-radius: 4px; color: white; margin-right: 5px; }
-.btn-edit { background-color: #3498db; }
-.btn-deactivate { background-color: #e67e22; }
-.btn-activate { background-color: var(--success-color); }
+th, td {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
 
-/* --- Tarjetas y Formularios --- */
-.card, .stats-card { background-color: var(--bg-content); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); }
-#uploadForm { display: flex; align-items: center; gap: 1rem; }
-.modal-overlay { /*...*/ }
-.modal-content { /*...*/ }
+tbody tr:last-child td {
+    border-bottom: none;
+}
 
-/* --- Paginación y Progreso --- */
-.pagination-controls { display: flex; justify-content: center; align-items: center; padding: 2rem 0; gap: 0.5rem; }
-.pagination-controls button { background-color: var(--bg-content); color: var(--text-muted); border: 1px solid var(--border-color); padding: 0.5rem 1rem; cursor: pointer; border-radius: 6px; font-weight: 500; transition: all 0.2s; }
-.pagination-controls button:hover:not(:disabled) { background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
-.pagination-controls button:disabled { cursor: not-allowed; opacity: 0.5; }
-.pagination-controls .info-text { color: var(--text-muted); font-size: 0.9em; margin: 0 1rem; }
-.progress-container { margin-top: 1.5rem; }
-.progress-bar-background { background-color: var(--bg-dark); border-radius: 8px; height: 12px; }
-.progress-bar { height: 100%; background-color: var(--accent-color); border-radius: 8px; transition: width 0.4s ease-in-out; }
-.progress-text { text-align: center; margin-top: 0.5rem; font-size: 0.9em; }
+td {
+    color: var(--text-muted);
+}
+
+td:nth-child(4), td:nth-child(6) {
+    white-space: normal;
+    min-width: 250px;
+}
+
+thead th {
+    background-color: #222222;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text-light);
+    text-transform: uppercase;
+}
+
+tbody tr:hover {
+    background-color: #282828;
+}
+
+.row-alert {
+    background-color: rgba(160, 160, 160, 0.1);
+}
+.row-alert:hover {
+    background-color: rgba(160, 160, 160, 0.2);
+}
+
+/* --- Botones y Otros Elementos --- */
+.btn {
+    padding: 0.6rem 1.2rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    background-color: var(--bg-content);
+    color: var(--text-light);
+}
+.btn:hover {
+    background-color: #333;
+    border-color: #555;
+}
+
+.btn-primary {
+    background-color: var(--text-light);
+    color: var(--bg-dark);
+    border-color: var(--text-light);
+}
+.btn-primary:hover {
+    background-color: #cccccc;
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+    border-color: #444;
+}
+.btn-success:hover {
+    background-color: #444;
+}
+
+.logout-btn {
+    background-color: var(--bg-content);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+.logout-btn:hover {
+    background-color: #333;
+    color: white;
+}
+
+.btn-action {
+    color: white;
+    padding: 6px 12px;
+    font-size: 0.9em;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+.btn-edit {
+    background-color: #444;
+}
+.btn-deactivate {
+    background-color: #666;
+}
+.btn-activate {
+    background-color: #888;
+}
+.btn-action:hover {
+    opacity: 0.8;
+}

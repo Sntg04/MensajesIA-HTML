@@ -18,11 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
     
-    // Aplica el estado de la barra lateral guardado.
-    if (localStorage.getItem('sidebarState') === 'collapsed') {
-        document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
-    }
-
     // Adapta la vista según el rol del usuario.
     const userRole = localStorage.getItem('userRole');
     if (userRole === 'admin') {
@@ -49,23 +44,13 @@ function setupEventListeners() {
     document.getElementById('userList').addEventListener('click', handleUserTableActions);
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
     document.getElementById('pagination-container').addEventListener('click', handlePaginationClick);
-    document.getElementById('sidebar-toggle').addEventListener('click', handleSidebarToggle);
-}
-
-/**
- * Gestiona el clic en el botón de menú para ocultar/mostrar la barra lateral y guarda la preferencia.
- */
-function handleSidebarToggle() {
-    const container = document.querySelector('.dashboard-container');
-    container.classList.toggle('sidebar-collapsed');
-    const isCollapsed = container.classList.contains('sidebar-collapsed');
-    localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
 }
 
 /**
  * Cambia la vista activa en el panel principal y maneja la lógica de reseteo de la vista de mensajes.
  */
 function switchView(targetId) {
+    // Evita recargar si la vista ya está activa
     const activeContent = document.querySelector('.content-section.active');
     if (activeContent && activeContent.id === targetId) return;
 
@@ -75,12 +60,12 @@ function switchView(targetId) {
     document.getElementById(targetId).classList.add('active');
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
     
+    // Si se hace clic en la pestaña "Mensajes Procesados", reseteamos la vista para mostrar todos los lotes.
     if (targetId === 'mensajes') {
         currentLoteId = null; 
         cargarMensajes(0);
     }
 }
-
 
 /**
  * Función central para realizar todas las llamadas a la API, incluyendo el token de autorización.
@@ -150,14 +135,18 @@ async function handleUserTableActions(event) {
     const button = event.target.closest('button.btn-action');
     if (!button) return;
     const userId = button.dataset.id;
-    if (button.matches('.btn-edit')) {
+
+    if (button.classList.contains('btn-edit')) {
         try {
             const user = await fetchAPI(`/api/usuarios/${userId}`);
-            showUserModal(user);
-        } catch (error) { alert(`Error al cargar datos del usuario: ${error.message}`); }
+            if (user) showUserModal(user);
+        } catch (error) {
+            alert(`Error al cargar datos del usuario: ${error.message}`);
+        }
         return;
     }
-    if (button.matches('.btn-deactivate')) {
+
+    if (button.classList.contains('btn-deactivate')) {
         if (confirm('¿Seguro que quieres DESACTIVAR este usuario?')) {
             try {
                 await fetchAPI(`/api/usuarios/${userId}/desactivar`, { method: 'DELETE' });
@@ -166,7 +155,8 @@ async function handleUserTableActions(event) {
         }
         return;
     }
-    if (button.matches('.btn-activate')) {
+
+    if (button.classList.contains('btn-activate')) {
         if (confirm('¿Seguro que quieres ACTIVAR este usuario?')) {
             try {
                 await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ activo: true }) });
@@ -190,13 +180,13 @@ async function cargarUsuarios() {
             const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
             userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto || 'N/A'}</td><td>${u.rol}</td>
                 <td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td>
-                <td><button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
+                <td>
+                    <button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
                     ${u.activo ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>` : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`}
                 </td></tr>`;
         });
     } catch (error) {
         userList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar usuarios: ${error.message}</td></tr>`;
-        console.error("Error en cargarUsuarios:", error);
     }
 }
 
@@ -227,7 +217,6 @@ async function cargarMensajes(page = 0, loteId = null) {
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
     } catch (error) {
         messageList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`;
-        console.error("Error en cargarMensajes:", error);
     }
 }
 
@@ -334,8 +323,8 @@ function pollLoteStatus(loteId) {
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
                 progressBar.style.backgroundColor = '#2ecc71';
                 setTimeout(() => {
-                    switchView('mensajes'); // Activa la pestaña de mensajes
-                    cargarMensajes(0, loteId);   // Carga los datos del lote específico
+                    switchView('mensajes');
+                    cargarMensajes(0, loteId);
                     cargarEstadisticas();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
