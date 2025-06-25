@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
-
+    
     // Aplica el estado de la barra lateral guardado.
     if (localStorage.getItem('sidebarState') === 'collapsed') {
         document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
@@ -32,7 +32,7 @@ function setupUI() {
         document.querySelector('.nav-link[data-target="usuarios"]').style.display = 'none';
         switchView('mensajes');
     }
-
+    
     cargarEstadisticas();
 }
 
@@ -40,16 +40,8 @@ function setupUI() {
  * Asigna todos los event listeners a los botones y elementos interactivos de la página.
  */
 function setupEventListeners() {
-    document.querySelector('.sidebar-nav').addEventListener('click', e => {
-        if (e.target.matches('.nav-link')) {
-            e.preventDefault();
-            switchView(e.target.dataset.target);
-        }
-    });
-    document.getElementById('logoutButton').addEventListener('click', () => {
-        localStorage.clear();
-        window.location.href = 'index.html';
-    });
+    document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
+    document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
     document.getElementById('export-excel-btn').addEventListener('click', exportarMensajes);
     document.getElementById('show-create-user-modal').addEventListener('click', () => showUserModal());
     document.getElementById('cancel-user-modal').addEventListener('click', hideUserModal);
@@ -70,15 +62,25 @@ function handleSidebarToggle() {
     localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
 }
 
+
+// --- INICIO DE LA CORRECCIÓN ---
+
 /**
- * Cambia la vista activa en el panel principal y maneja la lógica de reseteo de la vista de mensajes.
+ * Función de ayuda que SOLO se encarga del cambio visual de la pestaña.
  */
-function switchView(targetId) {
+function showTargetView(targetId) {
     document.querySelectorAll('.content-section.active').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
     document.getElementById(targetId).classList.add('active');
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
+}
 
+/**
+ * Cambia la vista activa y ejecuta la lógica correspondiente.
+ */
+function switchView(targetId) {
+    showTargetView(targetId); // Primero, cambia la vista.
+    
     // Si se hace clic en la pestaña "Mensajes Procesados", reseteamos la vista para mostrar todos los lotes.
     if (targetId === 'mensajes') {
         currentLoteId = null; // Olvidar el lote específico que se estaba viendo.
@@ -86,22 +88,24 @@ function switchView(targetId) {
     }
 }
 
+// --- FIN DE LA CORRECCIÓN ---
+
+
 /**
- * Función central para realizar todas las llamadas a la API, incluyendo el token de autorización.
+ * Función central para realizar todas las llamadas a la API.
  */
 async function fetchAPI(url, options = {}) {
-    const defaultHeaders = {'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`};
+    const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
     if (!(options.body instanceof FormData)) {
         defaultHeaders['Content-Type'] = 'application/json';
     }
-    const config = {...options, headers: {...defaultHeaders, ...options.headers}};
+    const config = { ...options, headers: { ...defaultHeaders, ...options.headers } };
     const response = await fetch(url, config);
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({error: 'Error del servidor sin detalles.'}));
+        const errorData = await response.json().catch(() => ({ error: 'Error del servidor sin detalles.' }));
         throw new Error(errorData.error || `Error HTTP ${response.status}`);
     }
-    if (response.status === 204 || response.headers.get("content-length") === "0")
-        return {success: true};
+    if (response.status === 204 || response.headers.get("content-length") === "0") return { success: true };
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
         return response.json();
@@ -112,8 +116,7 @@ async function fetchAPI(url, options = {}) {
 // --- SECCIÓN: GESTIÓN DE USUARIOS ---
 
 function showUserModal(user = null) {
-    const form = document.getElementById('user-form');
-    form.reset();
+    const form = document.getElementById('user-form'); form.reset();
     document.getElementById('form-error').textContent = '';
     const isEditing = !!user;
     document.getElementById('modal-title').textContent = isEditing ? 'Editar Usuario' : 'Crear Usuario';
@@ -126,9 +129,7 @@ function showUserModal(user = null) {
     document.getElementById('user-modal').style.display = 'flex';
 }
 
-function hideUserModal() {
-    document.getElementById('user-modal').style.display = 'none';
-}
+function hideUserModal() { document.getElementById('user-modal').style.display = 'none'; }
 
 async function handleUserFormSubmit(event) {
     event.preventDefault();
@@ -148,47 +149,38 @@ async function handleUserFormSubmit(event) {
     const url = isEditing ? `/api/usuarios/${id}` : '/api/usuarios';
     const method = isEditing ? 'PUT' : 'POST';
     try {
-        await fetchAPI(url, {method, body: JSON.stringify(userData)});
+        await fetchAPI(url, { method, body: JSON.stringify(userData) });
         hideUserModal();
         cargarUsuarios();
-    } catch (error) {
-        document.getElementById('form-error').textContent = `Error: ${error.message}`;
-    }
+    } catch (error) { document.getElementById('form-error').textContent = `Error: ${error.message}`; }
 }
 
 async function handleUserTableActions(event) {
     const button = event.target.closest('button.btn-action');
-    if (!button)
-        return;
+    if (!button) return;
     const userId = button.dataset.id;
     if (button.matches('.btn-edit')) {
         try {
             const user = await fetchAPI(`/api/usuarios/${userId}`);
             showUserModal(user);
-        } catch (error) {
-            alert(`Error al cargar datos del usuario: ${error.message}`);
-        }
+        } catch (error) { alert(`Error al cargar datos del usuario: ${error.message}`); }
         return;
     }
     if (button.matches('.btn-deactivate')) {
         if (confirm('¿Seguro que quieres DESACTIVAR este usuario?')) {
             try {
-                await fetchAPI(`/api/usuarios/${userId}/desactivar`, {method: 'DELETE'});
+                await fetchAPI(`/api/usuarios/${userId}/desactivar`, { method: 'DELETE' });
                 cargarUsuarios();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            } catch (error) { alert(`Error: ${error.message}`); }
         }
         return;
     }
     if (button.matches('.btn-activate')) {
         if (confirm('¿Seguro que quieres ACTIVAR este usuario?')) {
             try {
-                await fetchAPI(`/api/usuarios/${userId}`, {method: 'PUT', body: JSON.stringify({activo: true})});
+                await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ activo: true }) });
                 cargarUsuarios();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            } catch (error) { alert(`Error: ${error.message}`); }
         }
     }
 }
@@ -237,23 +229,21 @@ async function cargarMensajes(page = 0, loteId = null) {
             renderizarPaginacion(0, 0);
             return;
         }
-        // Se eliminan los atributos data-label de las celdas
         mensajes.forEach(m => {
-            let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', {dateStyle: 'short', timeStyle: 'medium'}) : 'N/A';
+            let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
             messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${m.observacion || 'N/A'}</td><td>${fechaMensaje}</td></tr>`;
         });
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
     } catch (error) {
         messageList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`;
         console.error("Error en cargarMensajes:", error);
-}
+    }
 }
 
 function renderizarPaginacion(totalPages, currentPage) {
     const container = document.getElementById('pagination-container');
     container.innerHTML = '';
-    if (totalPages <= 1)
-        return;
+    if (totalPages <= 1) return;
     const prevButton = document.createElement('button');
     prevButton.innerHTML = '&laquo;';
     prevButton.title = 'Página Anterior';
@@ -274,8 +264,7 @@ function renderizarPaginacion(totalPages, currentPage) {
 
 function handlePaginationClick(event) {
     const button = event.target.closest('button');
-    if (!button || button.disabled)
-        return;
+    if (!button || button.disabled) return;
     const page = parseInt(button.dataset.page, 10);
     if (!isNaN(page)) {
         cargarMensajes(page);
@@ -284,19 +273,14 @@ function handlePaginationClick(event) {
 
 async function exportarMensajes() {
     const button = document.getElementById('export-excel-btn');
-    button.textContent = 'Generando...';
-    button.disabled = true;
+    button.textContent = 'Generando...'; button.disabled = true;
     try {
         const blob = await fetchAPI('/api/mensajes/export');
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
+        a.style.display = 'none'; a.href = url;
         a.download = `Reporte_Mensajes_${new Date().toISOString().split('T')[0]}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
+        document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); a.remove();
     } catch (error) {
         alert(`Error al exportar: ${error.message}`);
     } finally {
@@ -332,7 +316,7 @@ async function handleFileUpload(event) {
     progressContainer.style.display = 'block';
     submitButton.disabled = true;
     try {
-        const result = await fetchAPI('/api/mensajes/upload', {method: 'POST', body: formData});
+        const result = await fetchAPI('/api/mensajes/upload', { method: 'POST', body: formData });
         uploadMessage.textContent = `${result.mensaje} Verificando estado...`;
         pollLoteStatus(result.loteId);
     } catch (error) {
@@ -359,7 +343,10 @@ function pollLoteStatus(loteId) {
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
                 progressBar.style.backgroundColor = '#2ecc71';
                 setTimeout(() => {
-                    cargarMensajes(0, loteId); // Carga la primera página del lote específico
+                    // --- LÓGICA CORREGIDA ---
+                    showTargetView('mensajes'); // Solo cambia la vista visualmente
+                    cargarMensajes(0, loteId);   // Carga los datos del lote específico
+                    
                     cargarEstadisticas();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
