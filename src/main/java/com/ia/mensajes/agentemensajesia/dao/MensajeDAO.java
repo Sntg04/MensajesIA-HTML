@@ -144,4 +144,26 @@ public class MensajeDAO {
             }
         }
     }
+    // Agrega este nuevo método dentro de la clase MensajeDAO
+
+    public void borrarTodos() {
+        EntityManager em = getEntityManager();
+        try {
+            em.getTransaction().begin();
+            // Usa una consulta de borrado masivo para máxima eficiencia
+            em.createQuery("DELETE FROM Mensaje").executeUpdate();
+            em.getTransaction().commit();
+            System.out.println("Historial de mensajes anteriores borrado exitosamente.");
+        } catch (Exception e) {
+            if (em.getTransaction() != null && em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            e.printStackTrace();
+            throw new RuntimeException("Error al borrar todos los mensajes en DAO", e);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
 }

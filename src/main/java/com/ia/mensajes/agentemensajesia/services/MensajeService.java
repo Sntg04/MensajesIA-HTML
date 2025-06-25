@@ -6,7 +6,7 @@ import com.ia.mensajes.agentemensajesia.ia.ResultadoClasificacion;
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.model.PaginatedResponse;
-import com.ia.mensajes.agentemensajesia.resources.MensajeResource; // Importante para acceder al mapa de estados
+import com.ia.mensajes.agentemensajesia.resources.MensajeResource;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -25,50 +25,50 @@ public class MensajeService {
     private final MensajeDAO mensajeDAO = new MensajeDAO();
 
     /**
-     * Procesa un archivo Excel, clasifica los mensajes en paralelo para mayor velocidad,
-     * actualiza el progreso y los guarda en la base de datos.
+     * Borra el historial anterior, procesa un archivo Excel, clasifica los mensajes 
+     * en paralelo, actualiza el progreso y los guarda en la base de datos.
      * @param inputStream El stream de datos del archivo .xlsx.
      * @param loteId El identificador único para el lote de procesamiento.
      */
     public void procesarYGuardarMensajesDesdeExcel(InputStream inputStream, String loteId) throws Exception {
         
+        // --- INICIO DE LA LÓGICA DE BORRADO ---
+        // 1. Borrar todos los mensajes existentes ANTES de procesar el nuevo archivo.
+        mensajeDAO.borrarTodos();
+        // --- FIN DE LA LÓGICA DE BORRADO ---
+
         List<Row> rows = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
             Sheet sheet = workbook.getSheetAt(0);
             sheet.rowIterator().forEachRemaining(rows::add);
-            if (!rows.isEmpty()) rows.remove(0); // Quitar encabezado
+            if (!rows.isEmpty()) rows.remove(0);
         }
 
         if (rows.isEmpty()) return;
 
         final long totalRows = rows.size();
         final AtomicLong processedCount = new AtomicLong(0);
-        final DataFormatter formatter = new DataFormatter(); // Un solo formatter para reutilizar
+        final DataFormatter formatter = new DataFormatter();
 
-        // Asegurarse de que el estado inicial está como "PROCESANDO"
         MensajeResource.jobStatuses.get(loteId).setStatus("PROCESANDO");
 
         List<Mensaje> mensajesProcesados = rows.parallelStream()
             .map(row -> {
-                String textoMensaje = getCellValueAsString(row.getCell(7), formatter); // Columna H
+                String textoMensaje = getCellValueAsString(row.getCell(7), formatter);
                 if (textoMensaje == null || textoMensaje.isEmpty()) return null;
 
-                // Actualizar progreso de forma segura para hilos
                 long count = processedCount.incrementAndGet();
                 int progress = (int) (((double) count / totalRows) * 100);
                 MensajeResource.jobStatuses.get(loteId).setProgress(progress);
 
-                // Extracción de datos de las columnas correctas
-                String app = getCellValueAsString(row.getCell(0), formatter);       // Columna A
-                String idCliente = getCellValueAsString(row.getCell(1), formatter); // Columna B
-                String asesor = getCellValueAsString(row.getCell(9), formatter);      // Columna J
-                LocalDateTime fechaHora = getCellLocalDateTime(row.getCell(10), formatter); // Columna K
+                String app = getCellValueAsString(row.getCell(0), formatter);
+                String idCliente = getCellValueAsString(row.getCell(1), formatter);
+                String asesor = getCellValueAsString(row.getCell(9), formatter);
+                LocalDateTime fechaHora = getCellLocalDateTime(row.getCell(10), formatter);
                 
-                // Clasificación con IA
                 ClasificadorMensajes clasificador = ClasificadorMensajes.getInstance();
                 ResultadoClasificacion resultado = clasificador.clasificar(textoMensaje);
 
-                // Creación de la entidad Mensaje
                 Mensaje nuevoMensaje = new Mensaje();
                 nuevoMensaje.setAplicacion(app);
                 nuevoMensaje.setIdCliente(idCliente);
@@ -82,14 +82,15 @@ public class MensajeService {
 
                 return nuevoMensaje;
             })
-            .filter(Objects::nonNull) // Filtra las filas que no tenían texto
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
-        // Guarda todos los mensajes procesados en una sola transacción
         if (!mensajesProcesados.isEmpty()) {
             mensajeDAO.guardarVarios(mensajesProcesados);
         }
     }
+
+    // --- El resto de los métodos se mantienen igual ---
 
     private String getCellValueAsString(Cell cell, DataFormatter formatter) {
         if (cell == null) return null;
@@ -108,46 +109,30 @@ public class MensajeService {
         return null;
     }
 
-    /**
-     * Obtiene una lista paginada de todos los mensajes históricos.
-     */
     public PaginatedResponse<Mensaje> obtenerMensajesPaginado(int numeroPagina, int tamanoPagina) {
         long totalMensajes = mensajeDAO.contarTotalMensajes();
         if (totalMensajes == 0) {
             return new PaginatedResponse<>(Collections.emptyList(), 0, 0, 0);
         }
-        
         List<Mensaje> mensajes = mensajeDAO.buscarPaginado(numeroPagina, tamanoPagina);
         int totalPaginas = (int) Math.ceil((double) totalMensajes / tamanoPagina);
-        
         return new PaginatedResponse<>(mensajes, numeroPagina, totalPaginas, totalMensajes);
     }
 
-    /**
-     * Obtiene una lista paginada de mensajes filtrados por un lote específico.
-     */
     public PaginatedResponse<Mensaje> obtenerMensajesPaginadoPorLote(String loteId, int numeroPagina, int tamanoPagina) {
         long totalMensajes = mensajeDAO.contarTotalMensajesPorLote(loteId);
         if (totalMensajes == 0) {
             return new PaginatedResponse<>(Collections.emptyList(), 0, 0, 0);
         }
-        
         List<Mensaje> mensajes = mensajeDAO.buscarPaginadoPorLote(loteId, numeroPagina, tamanoPagina);
         int totalPaginas = (int) Math.ceil((double) totalMensajes / tamanoPagina);
-        
         return new PaginatedResponse<>(mensajes, numeroPagina, totalPaginas, totalMensajes);
     }
 
-    /**
-     * Obtiene todos los mensajes (usado principalmente para la exportación a Excel).
-     */
     public List<Mensaje> obtenerTodosLosMensajes() {
         return mensajeDAO.buscarTodos();
     }
 
-    /**
-     * Calcula las estadísticas generales de los mensajes.
-     */
     public EstadisticaMensaje calcularEstadisticas() {
         return mensajeDAO.getEstadisticas();
     }
