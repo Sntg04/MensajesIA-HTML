@@ -124,4 +124,23 @@ public class MensajeResource {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Error al generar el archivo Excel.").build();
         }
     }
+    // Agrega este nuevo endpoint dentro de la clase MensajeResource
+
+    @GET
+    @Path("/lote/{loteId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getMensajesPorLote(
+            @PathParam("loteId") String loteId,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("10") int size) {
+        try {
+            var paginatedResponse = mensajeService.obtenerMensajesPaginadoPorLote(loteId, page, size);
+            return Response.ok(paginatedResponse).build();
+        } catch(Exception e) {
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity(Map.of("error", "Error al obtener mensajes del lote " + loteId))
+                           .build();
+        }
+    }
 }

@@ -299,69 +299,6 @@ tbody tr:hover {
     color: var(--text-light);
 }
 
-/* --- Estilos para la Tabla Adaptable (Responsive) --- */
-@media screen and (max-width: 992px) {
-    /* Ocultar los encabezados de la tabla, ya no los necesitamos */
-    .table-container thead {
-        display: none;
-    }
-
-    /* Hacer que los elementos de la tabla se comporten como bloques */
-    .table-container table, 
-    .table-container tbody, 
-    .table-container tr, 
-    .table-container td {
-        display: block;
-        width: 100%;
-    }
-
-    /* Convertir cada fila en una "tarjeta" */
-    .table-container tr {
-        margin-bottom: 15px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        overflow: hidden; /* Para que los bordes redondeados se apliquen bien */
-    }
-    
-    /* Quitar bordes internos y añadir padding a las celdas */
-    .table-container td {
-        text-align: right; /* Alinea el dato a la derecha */
-        padding-left: 50%; /* Deja espacio para la etiqueta */
-        position: relative;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .table-container tr td:last-child {
-        border-bottom: none; /* Quitar el borde de la última celda de cada tarjeta */
-    }
-
-    /* La magia: crear la etiqueta a partir del atributo data-label */
-    .table-container td::before {
-        content: attr(data-label); /* Toma el texto del atributo data-label */
-        position: absolute;
-        left: 15px;
-        width: calc(50% - 30px); /* Ocupa la mitad izquierda */
-        padding-right: 10px;
-        text-align: left;
-        font-weight: bold;
-        color: var(--text-light);
-    }
-    
-    /* Estilo especial para la celda del mensaje, para que ocupe todo el ancho */
-    .table-container td[data-label="Mensaje"] {
-        padding-left: 15px;
-        text-align: left;
-        white-space: normal;
-        word-break: break-word;
-    }
-    .table-container td[data-label="Mensaje"]::before {
-        position: static;
-        display: block;
-        margin-bottom: 8px;
-        font-weight: bold;
-    }
-}
-/* --- Estilos para la Barra Lateral Plegable --- */
 
 /* Estilo para el nuevo botón de menú */
 .sidebar-toggle-btn {

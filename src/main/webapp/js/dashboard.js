@@ -1,4 +1,9 @@
+// --- Variables Globales para Controlar el Estado de la Vista ---
+let currentLoteId = null; // Guarda el ID del lote que se está viendo actualmente.
+let currentPage = 0;      // Guarda la página actual para la paginación.
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Si no hay token, redirige a la página de login.
     if (!localStorage.getItem('jwtToken')) {
         window.location.href = 'index.html';
         return;
@@ -8,17 +13,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Configura la interfaz de usuario inicial
+ * Configura la interfaz de usuario inicial al cargar la página.
  */
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
-    const userRole = localStorage.getItem('userRole');
-
-    // --- LÓGICA AÑADIDA: Aplicar estado de la sidebar al cargar ---
+    
+    // Aplica el estado de la barra lateral guardado.
     if (localStorage.getItem('sidebarState') === 'collapsed') {
         document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
     }
 
+    // Adapta la vista según el rol del usuario.
+    const userRole = localStorage.getItem('userRole');
     if (userRole === 'admin') {
         switchView('usuarios');
         cargarUsuarios();
@@ -26,12 +32,12 @@ function setupUI() {
         document.querySelector('.nav-link[data-target="usuarios"]').style.display = 'none';
         switchView('mensajes');
     }
-    cargarMensajes();
+    
     cargarEstadisticas();
 }
 
 /**
- * Asigna todos los event listeners a los botones y elementos interactivos.
+ * Asigna todos los event listeners a los botones y elementos interactivos de la página.
  */
 function setupEventListeners() {
     document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
@@ -43,34 +49,38 @@ function setupEventListeners() {
     document.getElementById('userList').addEventListener('click', handleUserTableActions);
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
     document.getElementById('pagination-container').addEventListener('click', handlePaginationClick);
-    
-    // --- LÓGICA AÑADIDA: Listener para el botón de menú ---
     document.getElementById('sidebar-toggle').addEventListener('click', handleSidebarToggle);
 }
 
 /**
- * Nueva función para gestionar el clic en el botón de menú.
+ * Gestiona el clic en el botón de menú para ocultar/mostrar la barra lateral y guarda la preferencia.
  */
 function handleSidebarToggle() {
     const container = document.querySelector('.dashboard-container');
     container.classList.toggle('sidebar-collapsed');
-
-    // Guardar el estado actual en localStorage para recordarlo
     const isCollapsed = container.classList.contains('sidebar-collapsed');
     localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
 }
 
-// ===============================================
-// === RESTO DE FUNCIONES (SIN CAMBIOS) ===
-// ===============================================
-
+/**
+ * Cambia la vista activa en el panel principal y maneja la lógica de reseteo de la vista de mensajes.
+ */
 function switchView(targetId) {
     document.querySelectorAll('.content-section.active').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
     document.getElementById(targetId).classList.add('active');
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
+
+    // Si se hace clic en la pestaña "Mensajes Procesados", reseteamos la vista para mostrar todos los lotes.
+    if (targetId === 'mensajes') {
+        currentLoteId = null; // Olvidar el lote específico que se estaba viendo.
+        cargarMensajes(0);    // Cargar la primera página de todos los mensajes.
+    }
 }
 
+/**
+ * Función central para realizar todas las llamadas a la API, incluyendo el token de autorización.
+ */
 async function fetchAPI(url, options = {}) {
     const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
     if (!(options.body instanceof FormData)) {
@@ -89,6 +99,8 @@ async function fetchAPI(url, options = {}) {
     }
     return response.blob();
 }
+
+// --- SECCIÓN: GESTIÓN DE USUARIOS ---
 
 function showUserModal(user = null) {
     const form = document.getElementById('user-form'); form.reset();
@@ -184,33 +196,29 @@ async function cargarUsuarios() {
     }
 }
 
-async function cargarMensajes(page = 0) {
+// --- SECCIÓN: GESTIÓN DE MENSAJES ---
+
+async function cargarMensajes(page = 0, loteId = null) {
+    currentPage = page;
+    if (loteId !== null) {
+        currentLoteId = loteId;
+    }
     const messageList = document.getElementById('messageList');
     messageList.innerHTML = `<tr><td colspan="7">Cargando página ${page + 1}...</td></tr>`;
+    let url = currentLoteId ? `/api/mensajes/lote/${currentLoteId}?page=${page}&size=10` : `/api/mensajes?page=${page}&size=10`;
+
     try {
-        const paginatedData = await fetchAPI(`/api/mensajes?page=${page}&size=10`);
+        const paginatedData = await fetchAPI(url);
         const mensajes = paginatedData.content;
         messageList.innerHTML = '';
         if (!mensajes || mensajes.length === 0) {
-            messageList.innerHTML = '<tr><td colspan="7">No hay mensajes para mostrar. Sube un archivo.</td></tr>';
+            messageList.innerHTML = `<tr><td colspan="7">${currentLoteId ? `No hay mensajes para el lote.` : 'No hay mensajes. Sube un archivo.'}</td></tr>`;
             renderizarPaginacion(0, 0);
             return;
         }
         mensajes.forEach(m => {
-            let fechaMensaje = 'N/A';
-            if (m.fechaHoraMensaje) {
-                fechaMensaje = new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
-            }
-            messageList.innerHTML += `
-                <tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
-                    <td data-label="ID">${m.id}</td>
-                    <td data-label="Asesor">${m.nombreAsesor || 'N/A'}</td>
-                    <td data-label="Aplicación">${m.aplicacion || 'N/A'}</td>
-                    <td data-label="Mensaje">${m.texto}</td>
-                    <td data-label="Clasificación">${m.clasificacion}</td>
-                    <td data-label="Observación">${m.observacion || 'N/A'}</td>
-                    <td data-label="Fecha del Mensaje">${fechaMensaje}</td>
-                </tr>`;
+            let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
+            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td>${m.observacion || 'N/A'}</td><td>${fechaMensaje}</td></tr>`;
         });
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
     } catch (error) {
@@ -322,7 +330,7 @@ function pollLoteStatus(loteId) {
                 uploadMessage.textContent = '¡Procesamiento completado! Actualizando tablas...';
                 progressBar.style.backgroundColor = '#2ecc71';
                 setTimeout(() => {
-                    cargarMensajes(0);
+                    cargarMensajes(0, loteId); // Carga la primera página del lote específico
                     cargarEstadisticas();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';

@@ -116,4 +116,18 @@ public class MensajeService {
     public EstadisticaMensaje calcularEstadisticas() {
         return mensajeDAO.getEstadisticas();
     }
+    // Agrega este nuevo método dentro de la clase MensajeService
+
+    public com.ia.mensajes.agentemensajesia.model.PaginatedResponse<Mensaje> obtenerMensajesPaginadoPorLote(String loteId, int numeroPagina, int tamanoPagina) {
+        long totalMensajes = mensajeDAO.contarTotalMensajesPorLote(loteId);
+        if (totalMensajes == 0) {
+            return new com.ia.mensajes.agentemensajesia.model.PaginatedResponse<>(java.util.Collections.emptyList(), 0, 0, 0);
+        }
+        
+        List<Mensaje> mensajes = mensajeDAO.buscarPaginadoPorLote(loteId, numeroPagina, tamanoPagina);
+        
+        int totalPaginas = (int) Math.ceil((double) totalMensajes / tamanoPagina);
+        
+        return new com.ia.mensajes.agentemensajesia.model.PaginatedResponse<>(mensajes, numeroPagina, totalPaginas, totalMensajes);
+    }
 }

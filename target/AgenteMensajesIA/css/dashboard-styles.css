@@ -1,0 +1,334 @@
+:root {
+    --bg-dark: #121212;
+    --bg-content: #1e1e1e;
+    --bg-sidebar: #0a0a0a;
+    --border-color: #333;
+    --text-light: #e0e0e0;
+    --text-muted: #888;
+    --accent-color: #03a9f4;
+    --success-color: #2ecc71;
+    --error-color: #e53935;
+}
+body, html {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+}
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+}
+.sidebar {
+    width: 220px;
+    background-color: var(--bg-sidebar);
+    padding: 25px 15px;
+    border-right: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.sidebar-title {
+    font-size: 1.5em;
+    color: white;
+    text-align: center;
+    margin: 0 0 30px 0;
+}
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+}
+.nav-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 12px 20px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+.nav-link:hover {
+    background-color: var(--bg-content);
+    color: white;
+}
+.nav-link.active {
+    background-color: var(--accent-color);
+    color: white;
+    font-weight: bold;
+}
+.main-content {
+    flex-grow: 1;
+    padding: 20px 40px;
+    overflow-x: hidden;
+}
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+.logout-btn {
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.logout-btn:hover {
+    background-color: #444;
+}
+.content-section {
+    display: none;
+}
+.content-section.active {
+    display: block;
+}
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+h3 {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+    margin-top: 0;
+    font-size: 1.4em;
+}
+.table-container {
+    max-width: 100%;
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 14px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    white-space: nowrap;
+}
+td:nth-child(2) {
+    white-space: normal;
+    word-break: break-word;
+}
+thead th {
+    background-color: #252525;
+    font-weight: bold;
+    color: white;
+}
+tbody tr:hover {
+    background-color: #2a2a2a;
+}
+.btn-primary {
+    background-color: var(--accent-color);
+    color: white;
+    border:none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-primary:hover {
+    opacity: 0.9;
+}
+.btn-secondary {
+    background-color: #555;
+    color: white;
+}
+.btn-action {
+    padding: 6px 12px;
+    font-size: 0.9em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    color: white;
+}
+.btn-edit {
+    background-color: #3498db;
+}
+.btn-deactivate {
+    background-color: #e67e22;
+}
+.btn-activate {
+    background-color: var(--success-color);
+}
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal-content {
+    background-color: var(--bg-content);
+    padding: 30px;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-muted);
+}
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.form-actions {
+    margin-top: 25px;
+    text-align: right;
+}
+.form-actions button {
+    padding: 10px 20px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.error-message {
+    color: var(--error-color);
+    font-weight: 500;
+    min-height: 1em;
+}
+.message {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 5px;
+}
+#uploadForm button {
+    background-color: var(--success-color);
+}
+
+/* --- Estilos Mejorados para Paginación --- */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 25px 0;
+    gap: 8px; /* Espacio entre elementos */
+    user-select: none; /* Evita que el texto se seleccione al hacer doble clic */
+}
+
+.pagination-controls button {
+    background-color: #2c2c2c;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 10px 16px;
+    cursor: pointer;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 1.1em;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+/* El botón activo (número de página) ya no es necesario, pero lo dejamos por si se usa en otro lado */
+.pagination-controls button.active {
+    background-color: var(--accent-color);
+    color: white;
+    font-weight: bold;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 8px rgba(3, 169, 244, 0.5);
+}
+
+.pagination-controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.pagination-controls .info-text {
+    color: var(--text-muted);
+    font-size: 0.95em;
+    margin: 0 16px;
+    font-weight: 500;
+}
+/* --- Estilos para la Barra de Progreso --- */
+.progress-container {
+    width: 100%;
+    margin-top: 20px;
+}
+.progress-bar-background {
+    width: 100%;
+    background-color: #333;
+    border-radius: 8px;
+    height: 20px;
+    overflow: hidden;
+}
+.progress-bar {
+    width: 0%; /* Inicia en 0% */
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 8px;
+    transition: width 0.4s ease-in-out; /* Animación suave */
+    text-align: center;
+    line-height: 20px;
+    color: white;
+}
+.progress-text {
+    display: block;
+    text-align: center;
+    margin-top: 5px;
+    font-weight: bold;
+    color: var(--text-light);
+}
+
+
+/* Estilo para el nuevo botón de menú */
+.sidebar-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 1.5em;
+    cursor: pointer;
+    margin-right: 20px;
+    padding: 0 10px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+/* Transiciones suaves para la animación */
+.sidebar, .main-content {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Cuando el contenedor principal tiene la clase 'sidebar-collapsed'... */
+.dashboard-container.sidebar-collapsed .sidebar {
+    width: 0; /* ...la barra lateral se encoge a cero. */
+    padding: 25px 0;
+    overflow: hidden; /* Oculta el contenido mientras se encoge */
+    border-right: none;
+}
+
+.dashboard-container.sidebar-collapsed .main-content {
+    margin-left: 0; /* ...el contenido principal ocupa todo el ancho. */
+}

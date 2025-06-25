@@ -96,7 +96,9 @@ public class MensajeDAO {
             TypedQuery<Long> query = em.createQuery("SELECT COUNT(m) FROM Mensaje m", Long.class);
             return query.getSingleResult();
         } finally {
-            if (em != null) em.close();
+            if (em != null) {
+                em.close();
+            }
         }
     }
 
@@ -108,7 +110,38 @@ public class MensajeDAO {
             query.setMaxResults(tamanoPagina); // Define cuántos resultados traer
             return query.getResultList();
         } finally {
-            if (em != null) em.close();
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
+    // Agrega estos dos métodos dentro de la clase MensajeDAO
+    public long contarTotalMensajesPorLote(String loteId) {
+        EntityManager em = getEntityManager();
+        try {
+            TypedQuery<Long> query = em.createQuery("SELECT COUNT(m) FROM Mensaje m WHERE m.lote = :loteId", Long.class);
+            query.setParameter("loteId", loteId);
+            return query.getSingleResult();
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
+    public List<Mensaje> buscarPaginadoPorLote(String loteId, int numeroPagina, int tamanoPagina) {
+        EntityManager em = getEntityManager();
+        try {
+            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m WHERE m.lote = :loteId ORDER BY m.id DESC", Mensaje.class);
+            query.setParameter("loteId", loteId);
+            query.setFirstResult(numeroPagina * tamanoPagina);
+            query.setMaxResults(tamanoPagina);
+            return query.getResultList();
+        } finally {
+            if (em != null) {
+                em.close();
+            }
         }
     }
 }
