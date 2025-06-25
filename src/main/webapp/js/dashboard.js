@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
-    
+
     // Adapta la vista según el rol del usuario.
     const userRole = localStorage.getItem('userRole');
     if (userRole === 'admin') {
