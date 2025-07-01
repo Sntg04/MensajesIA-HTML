@@ -23,7 +23,7 @@ public class ClasificadorMensajes {
     private POSTaggerME posTagger;
     private LemmatizerME lemmatizer;
     private SentimentAnalysisService sentimentService;
-
+    
     // Banderas de estado para controlar la inicialización de forma segura
     private volatile boolean isInitializing = false;
     private volatile boolean isReady = false;
@@ -54,13 +54,15 @@ public class ClasificadorMensajes {
         PUNTUACION_ALERTA.put("proceso", 1);
         PUNTUACION_ALERTA.put("responsabilidad", 1);
     }
-
+    
     private ClasificadorMensajes() {
       // Constructor vacío
     }
 
     public void init() {
-        if (isReady || isInitializing) return;
+        if (isReady || isInitializing) {
+            return;
+        }
         synchronized (this) {
             if (isReady || isInitializing) return;
             isInitializing = true;
@@ -76,7 +78,7 @@ public class ClasificadorMensajes {
                 System.out.println("Modelos OpenNLP cargados.");
                 this.sentimentService = SentimentAnalysisService.getInstance();
                 this.sentimentService.init();
-                isReady = true;
+                isReady = true; // La IA está lista
             } catch (Exception e) {
                 System.err.println("Error fatal durante la inicialización de los servicios de IA.");
                 throw new RuntimeException("Fallo al cargar los modelos de IA.", e);
@@ -85,7 +87,7 @@ public class ClasificadorMensajes {
             }
         }
     }
-
+    
     // Método crucial para la sincronización
     public void waitForReady() {
         if (isReady) return;
@@ -106,7 +108,7 @@ public class ClasificadorMensajes {
         }
         return instance;
     }
-
+    
     private String normalizar(String texto) {
         if (texto == null) return "";
         texto = texto.toLowerCase();
