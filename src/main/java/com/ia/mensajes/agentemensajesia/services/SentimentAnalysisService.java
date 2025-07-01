@@ -4,25 +4,21 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-// NO SE USAN LAS LIBRERÍAS PESADAS DE STANFORD EN ESTA VERSIÓN
-// import edu.stanford.nlp.pipeline.StanfordCoreNLP; 
-
 public class SentimentAnalysisService {
 
     private static SentimentAnalysisService instance;
-    // La variable 'pipeline' de Stanford se ha eliminado para ahorrar memoria
 
-    // --- LÓGICA DE SIMULACIÓN ---
-    private static final Set<String> PALABRAS_POSITIVAS = new HashSet<>(Arrays.asList("gracias", "ayuda", "solucion", "excelente", "bueno", "amable"));
-    private static final Set<String> PALABRAS_NEGATIVAS = new HashSet<>(Arrays.asList("problema", "no", "nunca", "pesimo", "molesto", "queja", "odio"));
+    // --- LÓGICA DE SIMULACIÓN LIGERA ---
+    private static final Set<String> PALABRAS_POSITIVAS = new HashSet<>(Arrays.asList("gracias", "ayuda", "solucion", "excelente", "bueno", "amable", "resolver"));
+    private static final Set<String> PALABRAS_NEGATIVAS = new HashSet<>(Arrays.asList("problema", "no", "nunca", "pesimo", "molesto", "queja", "odio", "incompetente"));
 
     private SentimentAnalysisService() {
-        // El constructor está vacío. No hay modelos que cargar.
+        // El constructor está vacío. No se cargan modelos pesados.
     }
     
     // El método init() ahora está vacío pero lo mantenemos por consistencia estructural.
     public void init() {
-        System.out.println("SentimentAnalysisService iniciado en MODO DESARROLLO (ligero).");
+        System.out.println("SentimentAnalysisService iniciado en MODO DESARROLLO (ligero). No se cargan modelos pesados.");
     }
 
     public static synchronized SentimentAnalysisService getInstance() {
@@ -33,9 +29,9 @@ public class SentimentAnalysisService {
     }
 
     /**
-     * SIMULACIÓN de análisis de sentimiento para desarrollo.
+     * SIMULACIÓN de análisis de sentimiento para desarrollo. No usa modelos reales.
      * @param text El texto a analizar.
-     * @return Una cadena simulando el sentimiento.
+     * @return Una cadena simulando el sentimiento ("Positive", "Negative", "Neutral").
      */
     public String getSentiment(String text) {
         if (text == null || text.trim().isEmpty()) {
@@ -56,6 +52,6 @@ public class SentimentAnalysisService {
             }
         }
         
-        return "Neutral"; // Si no encuentra ninguna palabra clave
+        return "Neutral"; // Si no encuentra ninguna palabra clave, es neutral.
     }
 }

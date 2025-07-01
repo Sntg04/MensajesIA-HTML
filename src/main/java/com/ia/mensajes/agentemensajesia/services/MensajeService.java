@@ -26,8 +26,6 @@ public class MensajeService {
 
     public void procesarYGuardarMensajesDesdeExcel(InputStream inputStream, String loteId) throws Exception {
         
-        // ---- LÍNEA CLAVE ----
-        // El hilo de procesamiento se detendrá aquí si es necesario, esperando a que la IA esté lista.
         ClasificadorMensajes.getInstance().waitForReady();
 
         mensajeDAO.borrarTodos();
@@ -56,7 +54,6 @@ public class MensajeService {
                 int progress = (int) (((double) count / totalRows) * 100);
                 MensajeResource.jobStatuses.get(loteId).setProgress(progress);
 
-                // Esta llamada ahora es 100% segura.
                 ClasificadorMensajes clasificador = ClasificadorMensajes.getInstance();
                 ResultadoClasificacion resultado = clasificador.clasificar(textoMensaje);
 
