@@ -110,9 +110,12 @@ public class ClasificadorMensajes {
         texto = texto.toLowerCase();
         texto = Normalizer.normalize(texto, Normalizer.Form.NFD);
         texto = texto.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
-        // --- AQUÍ ESTÁ LA CORRECCIÓN ---
-        // Se elimina CUALQUIER COSA que no sea una letra o un espacio.
+        
+        // --- AQUÍ ESTÁ LA CORRECCIÓN DEFINITIVA ---
+        // Se elimina CUALQUIER COSA que no sea una letra minúscula o un espacio.
+        // Esto previene errores con números, horas, símbolos extraños, etc.
         texto = texto.replaceAll("[^a-z\\s]", " "); 
+        
         return texto.trim();
     }
 
@@ -153,7 +156,6 @@ public class ClasificadorMensajes {
         final int UMBRAL_PUNTOS = 5;
         boolean esAlertaPorPuntos = puntuacion >= UMBRAL_PUNTOS;
         
-        // Usamos la versión de desarrollo del servicio de sentimiento
         boolean esAlertaPorTono = "Negative".equalsIgnoreCase(sentimiento);
 
         if (!esAlertaPorPuntos && !esAlertaPorTono) {
