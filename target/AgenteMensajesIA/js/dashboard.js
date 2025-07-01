@@ -67,7 +67,7 @@ function switchView(targetId) {
     }
     if (targetId === 'estadisticas') {
         cargarEstadisticas();
-        cargarEstadisticasAsesor(); // Cargar la nueva tabla al ver las estadísticas
+        cargarEstadisticasAsesor();
     }
 }
 
@@ -90,7 +90,7 @@ async function fetchAPI(url, options = {}) {
     return response.blob();
 }
 
-// --- SECCIÓN: GESTIÓN DE USUARIOS ---
+// --- SECCIÓN: GESTIÓN DE USUARIOS (Sin cambios) ---
 function showUserModal(user = null) {
     const form = document.getElementById('user-form');
     form.reset();
@@ -165,6 +165,7 @@ async function cargarUsuarios() {
         userList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar usuarios: ${error.message}</td></tr>`;
     }
 }
+
 
 // --- SECCIÓN: GESTIÓN DE MENSAJES ---
 
@@ -294,22 +295,24 @@ async function cargarEstadisticas() {
 
 async function cargarEstadisticasAsesor() {
     const statsList = document.getElementById('asesor-stats-list');
-    statsList.innerHTML = '<tr><td colspan="2">Cargando...</td></tr>';
+    statsList.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>'; // Aumentado a 4 columnas
     try {
         const stats = await fetchAPI('/api/mensajes/stats/por-asesor');
         statsList.innerHTML = '';
         if (!stats || stats.length === 0) {
-            statsList.innerHTML = '<tr><td colspan="2">No hay datos por asesor para mostrar.</td></tr>';
+            statsList.innerHTML = '<tr><td colspan="4">No hay datos por asesor para mostrar.</td></tr>';
             return;
         }
         stats.forEach(s => {
             statsList.innerHTML += `<tr>
                 <td>${s.nombreAsesor || 'Sin Asignar'}</td>
                 <td>${s.totalMensajes}</td>
+                <td class="cell-bueno">${s.mensajesBuenos}</td>
+                <td class="cell-alerta">${s.mensajesAlertas}</td>
             </tr>`;
         });
     } catch (error) {
-        statsList.innerHTML = `<tr><td colspan="2" class="error-message">Error al cargar estadísticas por asesor.</td></tr>`;
+        statsList.innerHTML = `<tr><td colspan="4" class="error-message">Error al cargar estadísticas por asesor.</td></tr>`;
     }
 }
 

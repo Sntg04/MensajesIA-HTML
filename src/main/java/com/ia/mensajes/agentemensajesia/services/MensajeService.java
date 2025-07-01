@@ -3,7 +3,7 @@ package com.ia.mensajes.agentemensajesia.services;
 import com.ia.mensajes.agentemensajesia.dao.MensajeDAO;
 import com.ia.mensajes.agentemensajesia.ia.ClasificadorMensajes;
 import com.ia.mensajes.agentemensajesia.ia.ResultadoClasificacion;
-import com.ia.mensajes.agentemensajesia.model.AsesorStats; // <-- Importar el nuevo DTO
+import com.ia.mensajes.agentemensajesia.model.AsesorStats;
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.model.PaginatedResponse;
@@ -117,14 +117,15 @@ public class MensajeService {
         return mensajeDAO.obtenerNombresDeAsesores();
     }
     
-    /**
-     * NUEVO MÉTODO: Obtiene y procesa las estadísticas por asesor.
-     * @return Una lista de objetos AsesorStats.
-     */
     public List<AsesorStats> obtenerEstadisticasPorAsesor() {
         List<Object[]> resultados = mensajeDAO.contarMensajesPorAsesor();
         return resultados.stream()
-                .map(resultado -> new AsesorStats((String) resultado[0], (Long) resultado[1]))
+                .map(res -> new AsesorStats(
+                        (String) res[0],      // nombreAsesor
+                        (Long) res[1],        // totalMensajes
+                        (Long) res[2],        // mensajesBuenos
+                        (Long) res[3]         // mensajesAlertas
+                ))
                 .collect(Collectors.toList());
     }
 }

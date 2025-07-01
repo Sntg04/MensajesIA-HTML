@@ -1,5 +1,6 @@
 package com.ia.mensajes.agentemensajesia.dao;
 
+import com.ia.mensajes.agentemensajesia.model.AsesorStats; // Importar AsesorStats
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.util.JPAUtil;
@@ -7,6 +8,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MensajeDAO {
 
@@ -39,12 +41,10 @@ public class MensajeDAO {
         try {
             return em.createQuery("SELECT m FROM Mensaje m ORDER BY m.id DESC", Mensaje.class).getResultList();
         } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
-
+    
     public EstadisticaMensaje getEstadisticas() {
         EntityManager em = getEntityManager();
         try {
@@ -55,12 +55,10 @@ public class MensajeDAO {
         } catch (NoResultException e) {
             return new EstadisticaMensaje(0L, 0.0, 0.0);
         } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
-    
+
     public long contarTotalMensajes(String asesorFiltro) {
         EntityManager em = getEntityManager();
         try {
@@ -150,14 +148,18 @@ public class MensajeDAO {
     }
 
     /**
-     * NUEVO MÉTODO: Cuenta los mensajes por cada asesor.
-     * @return Una lista de Object[], donde cada array contiene [nombreAsesor, conteo].
+     * MÉTODO ACTUALIZADO: Cuenta mensajes totales, buenos y alertas por cada asesor.
      */
     public List<Object[]> contarMensajesPorAsesor() {
         EntityManager em = getEntityManager();
         try {
-            TypedQuery<Object[]> query = em.createQuery(
-                "SELECT m.nombreAsesor, COUNT(m) FROM Mensaje m WHERE m.nombreAsesor IS NOT NULL GROUP BY m.nombreAsesor ORDER BY COUNT(m) DESC", Object[].class);
+            String qlString = "SELECT m.nombreAsesor, COUNT(m), " +
+                              "SUM(CASE WHEN m.clasificacion = 'Bueno' THEN 1 ELSE 0 END), " +
+                              "SUM(CASE WHEN m.clasificacion = 'Alerta' THEN 1 ELSE 0 END) " +
+                              "FROM Mensaje m WHERE m.nombreAsesor IS NOT NULL " +
+                              "GROUP BY m.nombreAsesor " +
+                              "ORDER BY COUNT(m) DESC";
+            TypedQuery<Object[]> query = em.createQuery(qlString, Object[].class);
             return query.getResultList();
         } finally {
             if (em != null) {
