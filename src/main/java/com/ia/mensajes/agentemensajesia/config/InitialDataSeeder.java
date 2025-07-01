@@ -18,31 +18,24 @@ public class InitialDataSeeder implements ServletContextListener {
     public void contextInitialized(ServletContextEvent sce) {
         System.out.println("INICIADOR: La aplicación web ha arrancado.");
 
-        // --- PRECARGA DE MODELOS DE IA ---
-        // Se inicia la carga en un hilo separado para no bloquear el arranque principal de la aplicación.
+        // Inicia la carga de la IA en un hilo separado para no bloquear el despliegue.
         new Thread(() -> {
             System.out.println("INICIADOR: Iniciando la carga de modelos de IA en segundo plano...");
-            ClasificadorMensajes.getInstance().init();
+            ClasificadorMensajes.getInstance().init(); // Llama al método de inicialización.
             System.out.println("INICIADOR: Modelos de IA cargados y listos para usar.");
         }).start();
         
         System.out.println("INICIADOR: Verificando datos iniciales de la base de datos...");
         EntityManager em = null;
         try {
-            // Se obtiene un EntityManager para la creación del usuario administrador.
             em = JPAUtil.getEntityManagerFactory().createEntityManager();
-
-            // Se verifica si el usuario 'admin' ya existe.
             TypedQuery<Long> query = em.createQuery("SELECT COUNT(u) FROM Usuario u WHERE u.username = :username", Long.class);
             query.setParameter("username", "admin");
             Long adminCount = query.getSingleResult();
 
-            // Si el conteo es 0, se crea el usuario por defecto.
             if (adminCount == 0) {
                 System.out.println(">>> Usuario 'admin' no encontrado. Creando usuario por defecto...");
-
                 em.getTransaction().begin();
-
                 Usuario admin = new Usuario();
                 admin.setUsername("admin");
                 admin.setPasswordHash(PasswordHasherUtil.hashPassword("admin123"));
@@ -50,10 +43,8 @@ public class InitialDataSeeder implements ServletContextListener {
                 admin.setNombreCompleto("Administrador del Sistema");
                 admin.setActivo(true);
                 admin.setFechaCreacion(new Date());
-
                 em.persist(admin);
                 em.getTransaction().commit();
-
                 System.out.println(">>> ¡Usuario 'admin' creado exitosamente!");
             } else {
                 System.out.println(">>> El usuario 'admin' ya existe en la base de datos.");

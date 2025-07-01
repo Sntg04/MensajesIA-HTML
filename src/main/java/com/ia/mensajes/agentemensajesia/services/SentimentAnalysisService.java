@@ -10,17 +10,18 @@ import java.util.Properties;
 public class SentimentAnalysisService {
 
     private static SentimentAnalysisService instance;
-    private StanfordCoreNLP pipeline; // No será final para inicializarlo en init()
+    private StanfordCoreNLP pipeline; // No es 'final' para permitir la inicialización controlada
 
     private SentimentAnalysisService() {
-        // El constructor ahora está vacío para un control de inicialización manual
+        // El constructor se deja vacío para un control manual de la inicialización.
     }
     
-    // Método para realizar la pesada inicialización
+    // Método que realiza la carga pesada de los modelos.
     public void init() {
         if (this.pipeline == null) {
             System.out.println("Iniciando SentimentAnalysisService...");
             Properties props = new Properties();
+            // Especifica explícitamente la ruta de cada modelo requerido para español.
             props.setProperty("annotators", "tokenize, ssplit, pos, lemma, parse, sentiment");
             props.setProperty("tokenize.language", "es");
             props.setProperty("pos.model", "edu/stanford/nlp/models/pos-tagger/spanish-ud.tagger");
@@ -41,7 +42,7 @@ public class SentimentAnalysisService {
 
     public String getSentiment(String text) {
         if (this.pipeline == null) {
-            System.err.println("ERROR: El servicio de sentimiento fue llamado antes de ser inicializado.");
+            System.err.println("ERROR CRÍTICO: El servicio de sentimiento fue llamado antes de ser inicializado.");
             return "Neutral";
         }
         if (text == null || text.trim().isEmpty()) {

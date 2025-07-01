@@ -24,7 +24,10 @@ public class ClasificadorMensajes {
     private LemmatizerME lemmatizer;
     private SentimentAnalysisService sentimentService;
 
-    // El sistema de puntuación y la sugerencia base se mantienen
+    // Banderas de estado para controlar la inicialización de forma segura
+    private volatile boolean isInitializing = false;
+    private volatile boolean isReady = false;
+
     private static final String SUGERENCIA_REFORMULACION = "Intente comunicar la misma información con un enfoque en soluciones y sin urgencia, por ejemplo: 'Le contactamos para revisar su caso y ofrecerle opciones para regularizar su situación.'";
     private static final Map<String, Integer> PUNTUACION_ALERTA = new HashMap<>();
     static {
@@ -55,10 +58,15 @@ public class ClasificadorMensajes {
     private ClasificadorMensajes() {
       // Constructor vacío para inicialización controlada
     }
-    
+
     public void init() {
-        if (this.tokenizer == null) {
-             try {
+        if (isReady || isInitializing) {
+            return;
+        }
+        synchronized (this) {
+            if (isReady || isInitializing) return;
+            isInitializing = true;
+            try {
                 System.out.println("Cargando modelos de OpenNLP...");
                 try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
                      InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
@@ -70,11 +78,28 @@ public class ClasificadorMensajes {
                 System.out.println("Modelos OpenNLP cargados.");
                 this.sentimentService = SentimentAnalysisService.getInstance();
                 this.sentimentService.init();
+                isReady = true; // La IA está lista
             } catch (Exception e) {
                 System.err.println("Error fatal durante la inicialización de los servicios de IA.");
                 throw new RuntimeException("Fallo al cargar los modelos de IA.", e);
+            } finally {
+                isInitializing = false;
             }
         }
+    }
+
+    // Método crucial para la sincronización
+    public void waitForReady() {
+        if (isReady) return;
+        System.out.println("Un proceso está esperando a que los modelos de IA terminen de cargar...");
+        while(!isReady) {
+            try {
+                Thread.sleep(1000); 
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        System.out.println("Modelos de IA listos. El proceso continúa.");
     }
 
     public static synchronized ClasificadorMensajes getInstance() {
@@ -93,17 +118,15 @@ public class ClasificadorMensajes {
         return texto;
     }
 
-    // --- MÉTODO `clasificar` ACTUALIZADO PARA USAR EL NUEVO GENERADOR DE OBSERVACIONES ---
     public ResultadoClasificacion clasificar(String textoMensaje) {
-        if (tokenizer == null || sentimentService == null) {
-            System.err.println("ERROR: El clasificador fue llamado antes de ser inicializado.");
-            return new ResultadoClasificacion("Error de Análisis", "El motor de IA no está listo.");
+        if (!isReady) {
+             System.err.println("ERROR: El clasificador fue llamado antes de estar listo. Un proceso no esperó correctamente.");
+             return new ResultadoClasificacion("Error de Análisis", "El motor de IA aún se está inicializando. Intente de nuevo en unos momentos.");
         }
         if (textoMensaje == null || textoMensaje.trim().isEmpty()) {
             return new ResultadoClasificacion("Bueno", "N/A");
         }
         try {
-            // Análisis de puntuación por palabras clave
             String mensajeNormalizado = normalizar(textoMensaje);
             String[] tokens = tokenizer.tokenize(mensajeNormalizado);
             String[] tags = posTagger.tag(tokens);
@@ -118,10 +141,7 @@ public class ClasificadorMensajes {
                 }
             }
 
-            // Análisis de sentimiento
             String sentimiento = sentimentService.getSentiment(textoMensaje);
-
-            // Generar el resultado final
             return generarObservacionProfunda(puntuacionTotal, palabrasDetectadas, sentimiento);
 
         } catch (Exception e) {
@@ -131,7 +151,6 @@ public class ClasificadorMensajes {
         }
     }
 
-    // --- NUEVO MÉTODO PARA GENERAR LA OBSERVACIÓN DETALLADA ---
     private ResultadoClasificacion generarObservacionProfunda(int puntuacion, List<String> palabrasClave, String sentimiento) {
         final int UMBRAL_PUNTOS = 5;
         boolean esAlertaPorPuntos = puntuacion >= UMBRAL_PUNTOS;
@@ -143,16 +162,14 @@ public class ClasificadorMensajes {
 
         StringBuilder sb = new StringBuilder();
 
-        // 1. Diagnóstico General
         if (esAlertaPorPuntos && esAlertaPorTono) {
             sb.append("Diagnóstico: Alto Riesgo. Se detectaron palabras clave críticas y un tono emocional negativo.\n");
         } else if (esAlertaPorPuntos) {
             sb.append("Diagnóstico: Riesgo por Contenido. Se detectaron palabras clave específicas de cobranza.\n");
-        } else { // Solo por tono
+        } else {
             sb.append("Diagnóstico: Riesgo por Tono. El mensaje tiene una carga emocional negativa.\n");
         }
 
-        // 2. Detalles del Análisis
         sb.append("\n--- Detalles del Análisis ---\n");
         if (esAlertaPorTono) {
             sb.append("• Análisis de Tono: El sentimiento fue clasificado como '").append(sentimiento).append("'.\n");
@@ -162,7 +179,6 @@ public class ClasificadorMensajes {
             sb.append("• Palabras de Riesgo: [").append(palabras).append("]. Puntuación total: ").append(puntuacion).append(" pts.\n");
         }
 
-        // 3. Sugerencia
         sb.append("\n--- Sugerencia ---\n");
         sb.append(SUGERENCIA_REFORMULACION);
 
