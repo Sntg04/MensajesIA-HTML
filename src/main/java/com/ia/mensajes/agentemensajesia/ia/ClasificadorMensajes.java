@@ -107,16 +107,20 @@ public class ClasificadorMensajes {
     
     private String normalizar(String texto) {
         if (texto == null) return "";
+        // 1. Convertir a minúsculas
         texto = texto.toLowerCase();
+        // 2. Descomponer caracteres con acentos (ej: "á" -> "a" + "'")
         texto = Normalizer.normalize(texto, Normalizer.Form.NFD);
+        // 3. Quitar los acentos
         texto = texto.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
         
-        // --- AQUÍ ESTÁ LA CORRECCIÓN DEFINITIVA ---
-        // Se elimina CUALQUIER COSA que no sea una letra minúscula o un espacio.
-        // Esto previene errores con números, horas, símbolos extraños, etc.
+        // 4. --- CORRECCIÓN DEFINITIVA ---
+        // Eliminar CUALQUIER COSA que no sea una letra minúscula (a-z) o un espacio.
+        // Esto elimina números, símbolos, horas, etc., que confunden a la IA.
         texto = texto.replaceAll("[^a-z\\s]", " "); 
         
-        return texto.trim();
+        // 5. Quitar espacios extra y retornar
+        return texto.trim().replaceAll("\\s+", " ");
     }
 
     public ResultadoClasificacion clasificar(String textoMensaje) {
