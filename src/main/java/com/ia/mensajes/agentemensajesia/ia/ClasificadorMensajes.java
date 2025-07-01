@@ -32,7 +32,7 @@ public class ClasificadorMensajes {
             "financiero", "hacer", "honorario", "ignorar", "incumplimiento",
             "inmediato", "instancia", "interno", "irresponsable", "juridico",
             "legal", "localizacion", "medida", "mora", "negativo", "obligacion",
-            "pago", "penalizacion", "portafolio", "presion", "proceder", "proceso",
+            "penalizacion", "portafolio", "presion", "proceder", "proceso",
             "protocolo", "referencia", "renuencia", "reportar", "responsabilidad",
             "retencion", "sancion", "silencio", "tercero", "tomar", "traslado", "visita"
     ));
