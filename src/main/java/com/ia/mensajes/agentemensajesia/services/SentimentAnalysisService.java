@@ -1,36 +1,28 @@
 package com.ia.mensajes.agentemensajesia.services;
 
-import edu.stanford.nlp.ling.CoreAnnotations;
-import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
-import edu.stanford.nlp.util.CoreMap;
-import java.util.Properties;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+// NO SE USAN LAS LIBRERÍAS PESADAS DE STANFORD EN ESTA VERSIÓN
+// import edu.stanford.nlp.pipeline.StanfordCoreNLP; 
 
 public class SentimentAnalysisService {
 
     private static SentimentAnalysisService instance;
-    private StanfordCoreNLP pipeline; // No es 'final' para permitir la inicialización controlada
+    // La variable 'pipeline' de Stanford se ha eliminado para ahorrar memoria
+
+    // --- LÓGICA DE SIMULACIÓN ---
+    private static final Set<String> PALABRAS_POSITIVAS = new HashSet<>(Arrays.asList("gracias", "ayuda", "solucion", "excelente", "bueno", "amable"));
+    private static final Set<String> PALABRAS_NEGATIVAS = new HashSet<>(Arrays.asList("problema", "no", "nunca", "pesimo", "molesto", "queja", "odio"));
 
     private SentimentAnalysisService() {
-        // El constructor se deja vacío para un control manual de la inicialización.
+        // El constructor está vacío. No hay modelos que cargar.
     }
     
-    // Método que realiza la carga pesada de los modelos.
+    // El método init() ahora está vacío pero lo mantenemos por consistencia estructural.
     public void init() {
-        if (this.pipeline == null) {
-            System.out.println("Iniciando SentimentAnalysisService...");
-            Properties props = new Properties();
-            // Especifica explícitamente la ruta de cada modelo requerido para español.
-            props.setProperty("annotators", "tokenize, ssplit, pos, lemma, parse, sentiment");
-            props.setProperty("tokenize.language", "es");
-            props.setProperty("pos.model", "edu/stanford/nlp/models/pos-tagger/spanish-ud.tagger");
-            props.setProperty("parse.model", "edu/stanford/nlp/models/lexparser/spanishPCFG.ser.gz");
-            props.setProperty("sentiment.model", "edu/stanford/nlp/models/sentiment/sentiment.spanish.unlabeled.uncased.simplification.dev.ser.gz");
-            
-            this.pipeline = new StanfordCoreNLP(props);
-            System.out.println("SentimentAnalysisService iniciado correctamente.");
-        }
+        System.out.println("SentimentAnalysisService iniciado en MODO DESARROLLO (ligero).");
     }
 
     public static synchronized SentimentAnalysisService getInstance() {
@@ -40,22 +32,30 @@ public class SentimentAnalysisService {
         return instance;
     }
 
+    /**
+     * SIMULACIÓN de análisis de sentimiento para desarrollo.
+     * @param text El texto a analizar.
+     * @return Una cadena simulando el sentimiento.
+     */
     public String getSentiment(String text) {
-        if (this.pipeline == null) {
-            System.err.println("ERROR CRÍTICO: El servicio de sentimiento fue llamado antes de ser inicializado.");
-            return "Neutral";
-        }
         if (text == null || text.trim().isEmpty()) {
             return "Neutral";
         }
 
-        Annotation annotation = new Annotation(text);
-        pipeline.annotate(annotation);
+        String textoNormalizado = text.toLowerCase();
 
-        for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
-            return sentence.get(SentimentCoreAnnotations.SentimentClass.class);
+        for (String palabra : PALABRAS_NEGATIVAS) {
+            if (textoNormalizado.contains(palabra)) {
+                return "Negative"; // Simula un resultado negativo
+            }
+        }
+
+        for (String palabra : PALABRAS_POSITIVAS) {
+            if (textoNormalizado.contains(palabra)) {
+                return "Positive"; // Simula un resultado positivo
+            }
         }
         
-        return "Neutral";
+        return "Neutral"; // Si no encuentra ninguna palabra clave
     }
 }
