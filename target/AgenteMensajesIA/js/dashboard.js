@@ -1,9 +1,8 @@
-// --- Variables Globales para Controlar el Estado de la Vista ---
-let currentLoteId = null; // Guarda el ID del lote que se está viendo actualmente.
-let currentPage = 0;      // Guarda la página actual para la paginación.
+let currentLoteId = null;
+let currentPage = 0;
+let currentAsesorFilter = ''; // Variable para el filtro de asesor
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Si no hay token, redirige a la página de login.
     if (!localStorage.getItem('jwtToken')) {
         window.location.href = 'index.html';
         return;
@@ -12,38 +11,24 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-/**
- * Configura la interfaz de usuario inicial al cargar la página.
- */
 function setupUI() {
     document.getElementById('welcomeMessage').textContent = `Bienvenido, ${localStorage.getItem('username')}`;
-
-    // Aplica el estado de la barra lateral guardado.
     if (localStorage.getItem('sidebarState') === 'collapsed') {
         document.querySelector('.dashboard-container').classList.add('sidebar-collapsed');
     }
-
-    // Recupera el estado guardado del lote.
     currentLoteId = localStorage.getItem('currentLoteId');
-
-    // Adapta la vista según el rol del usuario.
     const userRole = localStorage.getItem('userRole');
-    let initialView = 'mensajes'; // Vista por defecto
+    let initialView = 'mensajes';
     if (userRole === 'admin') {
         initialView = 'usuarios';
         cargarUsuarios();
     }
-    
     showTargetView(initialView);
-    
-    // Carga los mensajes (usará el lote guardado si existe) y las estadísticas.
     cargarMensajes(0);
     cargarEstadisticas();
+    cargarFiltroAsesores();
 }
 
-/**
- * Asigna todos los event listeners a los botones y elementos interactivos de la página.
- */
 function setupEventListeners() {
     document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
     document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
@@ -55,21 +40,15 @@ function setupEventListeners() {
     document.getElementById('userList').addEventListener('click', handleUserTableActions);
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
     document.getElementById('pagination-container').addEventListener('click', handlePaginationClick);
+    document.getElementById('asesor-filter').addEventListener('change', handleAsesorFilterChange);
 }
 
-/**
- * Gestiona el clic en el botón de menú para ocultar/mostrar la barra lateral y guarda la preferencia.
- */
 function handleSidebarToggle() {
     const container = document.querySelector('.dashboard-container');
     container.classList.toggle('sidebar-collapsed');
-    const isCollapsed = container.classList.contains('sidebar-collapsed');
-    localStorage.setItem('sidebarState', isCollapsed ? 'collapsed' : 'expanded');
+    localStorage.setItem('sidebarState', container.classList.contains('sidebar-collapsed') ? 'collapsed' : 'expanded');
 }
 
-/**
- * Función de ayuda que SOLO se encarga del cambio visual de la pestaña.
- */
 function showTargetView(targetId) {
     document.querySelectorAll('.content-section.active').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-link.active').forEach(l => l.classList.remove('active'));
@@ -77,23 +56,17 @@ function showTargetView(targetId) {
     document.querySelector(`.nav-link[data-target="${targetId}"]`).classList.add('active');
 }
 
-/**
- * Cambia la vista activa y ejecuta la lógica de carga de datos correspondiente.
- */
 function switchView(targetId) {
     showTargetView(targetId);
-
     if (targetId === 'mensajes') {
-        // Al hacer clic explícito en "Mensajes Procesados", olvidamos el lote y mostramos todos.
         localStorage.removeItem('currentLoteId');
         currentLoteId = null;
+        currentAsesorFilter = ''; // Limpiar filtro de asesor también
+        document.getElementById('asesor-filter').value = '';
         cargarMensajes(0);
     }
 }
 
-/**
- * Función central para realizar todas las llamadas a la API.
- */
 async function fetchAPI(url, options = {}) {
     const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
     if (!(options.body instanceof FormData)) {
@@ -113,8 +86,7 @@ async function fetchAPI(url, options = {}) {
     return response.blob();
 }
 
-// --- SECCIÓN: GESTIÓN DE USUARIOS ---
-
+// --- SECCIÓN: GESTIÓN DE USUARIOS (Sin cambios) ---
 function showUserModal(user = null) {
     const form = document.getElementById('user-form');
     form.reset();
@@ -229,20 +201,58 @@ async function cargarUsuarios() {
     }
 }
 
-// --- SECCIÓN: GESTIÓN DE MENSAJES ---
+
+// --- SECCIÓN: GESTIÓN DE MENSAJES (MODIFICADA) ---
+
+async function cargarFiltroAsesores() {
+    const select = document.getElementById('asesor-filter');
+    try {
+        const asesores = await fetchAPI('/api/mensajes/asesores');
+        select.innerHTML = '<option value="">Todos los Asesores</option>';
+        asesores.forEach(asesor => {
+            const option = document.createElement('option');
+            option.value = asesor;
+            option.textContent = asesor;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Error al cargar la lista de asesores:", error);
+    }
+}
+
+function handleAsesorFilterChange(event) {
+    currentAsesorFilter = event.target.value;
+    currentLoteId = null; // Un filtro de asesor anula el filtro por lote
+    localStorage.removeItem('currentLoteId');
+    cargarMensajes(0);
+}
 
 async function cargarMensajes(page = 0) {
     currentPage = page;
     const messageList = document.getElementById('messageList');
     messageList.innerHTML = `<tr><td colspan="7">Cargando página ${page + 1}...</td></tr>`;
-    let url = currentLoteId ? `/api/mensajes/lote/${currentLoteId}?page=${page}&size=10` : `/api/mensajes?page=${page}&size=10`;
 
+    const params = new URLSearchParams({ page, size: 10 });
+    let url;
+
+    if (currentLoteId) {
+        url = `/api/mensajes/lote/${currentLoteId}?${params.toString()}`;
+    } else {
+        if (currentAsesorFilter) {
+            params.append('asesor', currentAsesorFilter);
+        }
+        url = `/api/mensajes?${params.toString()}`;
+    }
+    
     try {
         const paginatedData = await fetchAPI(url);
         const mensajes = paginatedData.content;
         messageList.innerHTML = '';
         if (!mensajes || mensajes.length === 0) {
-            messageList.innerHTML = `<tr><td colspan="7">${currentLoteId ? `Mostrando solo mensajes del último lote.` : 'No hay mensajes. Sube un archivo.'}</td></tr>`;
+            let emptyMessage = 'No hay mensajes. Sube un archivo.';
+            if (currentLoteId) emptyMessage = `Mostrando solo mensajes del último lote.`;
+            if (currentAsesorFilter) emptyMessage = `No se encontraron mensajes para el asesor: ${currentAsesorFilter}.`;
+            messageList.innerHTML = `<tr><td colspan="7">${emptyMessage}</td></tr>`;
             renderizarPaginacion(0, 0);
             return;
         }
@@ -254,7 +264,7 @@ async function cargarMensajes(page = 0) {
                 <td>${m.aplicacion || 'N/A'}</td>
                 <td>${m.texto}</td>
                 <td>${m.clasificacion}</td>
-                <td>${m.observacion || 'N/A'}</td>
+                <td><pre>${m.observacion || 'N/A'}</pre></td>
                 <td>${fechaMensaje}</td>
             </tr>`;
         });
@@ -373,9 +383,12 @@ function pollLoteStatus(loteId) {
                 progressBar.style.backgroundColor = 'var(--success-color)';
                 setTimeout(() => {
                     localStorage.setItem('currentLoteId', loteId);
+                    currentAsesorFilter = ''; // Limpiar filtro de asesor al cargar nuevo lote
+                    document.getElementById('asesor-filter').value = '';
                     showTargetView('mensajes');
                     cargarMensajes(0);
                     cargarEstadisticas();
+                    cargarFiltroAsesores(); // Recargar la lista de asesores
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
                     progressBar.style.backgroundColor = 'var(--text-light)';

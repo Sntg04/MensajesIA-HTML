@@ -117,9 +117,10 @@ public class MensajeResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getMensajesPaginados(
             @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size) {
+            @QueryParam("size") @DefaultValue("10") int size,
+            @QueryParam("asesor") String asesor) {
         try {
-            PaginatedResponse<Mensaje> paginatedResponse = mensajeService.obtenerMensajesPaginado(page, size);
+            PaginatedResponse<Mensaje> paginatedResponse = mensajeService.obtenerMensajesPaginado(asesor, page, size);
             return Response.ok(paginatedResponse).build();
         } catch(Exception e) {
             e.printStackTrace();
@@ -164,7 +165,7 @@ public class MensajeResource {
     public Response getMensajesPorLote(
             @PathParam("loteId") String loteId,
             @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size) { // <-- AQUÍ ESTABA EL ERROR
+            @QueryParam("size") @DefaultValue("10") int size) {
         try {
             var paginatedResponse = mensajeService.obtenerMensajesPaginadoPorLote(loteId, page, size);
             return Response.ok(paginatedResponse).build();
@@ -172,6 +173,21 @@ public class MensajeResource {
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                            .entity(java.util.Map.of("error", "Error al obtener mensajes del lote " + loteId))
+                           .build();
+        }
+    }
+    
+    @GET
+    @Path("/asesores")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAsesores() {
+        try {
+            List<String> asesores = mensajeService.obtenerNombresDeAsesores();
+            return Response.ok(asesores).build();
+        } catch(Exception e) {
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity(Map.of("error", "Error al obtener la lista de asesores"))
                            .build();
         }
     }

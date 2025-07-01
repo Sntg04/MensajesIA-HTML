@@ -61,7 +61,6 @@ public class MensajeDAO {
         }
     }
 
-    // --- MÉTODO AÑADIDO PARA SOLUCIONAR EL ERROR ---
     public List<Mensaje> listarPorLote(String loteId) {
         EntityManager em = getEntityManager();
         try {
@@ -75,7 +74,6 @@ public class MensajeDAO {
         }
     }
 
-    // --- MÉTODO AÑADIDO PARA SOLUCIONAR EL ERROR ---
     public List<Mensaje> listarAlertasPorLote(String loteId) {
         EntityManager em = getEntityManager();
         try {
@@ -88,12 +86,18 @@ public class MensajeDAO {
             }
         }
     }
-    // Agrega estos dos métodos dentro de la clase MensajeDAO
 
-    public long contarTotalMensajes() {
+    public long contarTotalMensajes(String asesorFiltro) {
         EntityManager em = getEntityManager();
         try {
-            TypedQuery<Long> query = em.createQuery("SELECT COUNT(m) FROM Mensaje m", Long.class);
+            String queryString = "SELECT COUNT(m) FROM Mensaje m";
+            if (asesorFiltro != null && !asesorFiltro.isEmpty()) {
+                queryString += " WHERE m.nombreAsesor = :asesor";
+            }
+            TypedQuery<Long> query = em.createQuery(queryString, Long.class);
+            if (asesorFiltro != null && !asesorFiltro.isEmpty()) {
+                query.setParameter("asesor", asesorFiltro);
+            }
             return query.getSingleResult();
         } finally {
             if (em != null) {
@@ -102,12 +106,22 @@ public class MensajeDAO {
         }
     }
 
-    public List<Mensaje> buscarPaginado(int numeroPagina, int tamanoPagina) {
+    public List<Mensaje> buscarPaginado(String asesorFiltro, int numeroPagina, int tamanoPagina) {
         EntityManager em = getEntityManager();
         try {
-            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m ORDER BY m.fechaProcesamiento DESC", Mensaje.class);
-            query.setFirstResult(numeroPagina * tamanoPagina); // Define desde dónde empezar
-            query.setMaxResults(tamanoPagina); // Define cuántos resultados traer
+            String queryString = "SELECT m FROM Mensaje m";
+            if (asesorFiltro != null && !asesorFiltro.isEmpty()) {
+                queryString += " WHERE m.nombreAsesor = :asesor";
+            }
+            queryString += " ORDER BY m.fechaProcesamiento DESC";
+            
+            TypedQuery<Mensaje> query = em.createQuery(queryString, Mensaje.class);
+            if (asesorFiltro != null && !asesorFiltro.isEmpty()) {
+                query.setParameter("asesor", asesorFiltro);
+            }
+            
+            query.setFirstResult(numeroPagina * tamanoPagina);
+            query.setMaxResults(tamanoPagina);
             return query.getResultList();
         } finally {
             if (em != null) {
@@ -116,7 +130,6 @@ public class MensajeDAO {
         }
     }
 
-    // Agrega estos dos métodos dentro de la clase MensajeDAO
     public long contarTotalMensajesPorLote(String loteId) {
         EntityManager em = getEntityManager();
         try {
@@ -144,13 +157,11 @@ public class MensajeDAO {
             }
         }
     }
-    // Agrega este nuevo método dentro de la clase MensajeDAO
 
     public void borrarTodos() {
         EntityManager em = getEntityManager();
         try {
             em.getTransaction().begin();
-            // Usa una consulta de borrado masivo para máxima eficiencia
             em.createQuery("DELETE FROM Mensaje").executeUpdate();
             em.getTransaction().commit();
             System.out.println("Historial de mensajes anteriores borrado exitosamente.");
@@ -160,6 +171,19 @@ public class MensajeDAO {
             }
             e.printStackTrace();
             throw new RuntimeException("Error al borrar todos los mensajes en DAO", e);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
+    public List<String> obtenerNombresDeAsesores() {
+        EntityManager em = getEntityManager();
+        try {
+            TypedQuery<String> query = em.createQuery(
+                "SELECT DISTINCT m.nombreAsesor FROM Mensaje m WHERE m.nombreAsesor IS NOT NULL AND m.nombreAsesor != '' ORDER BY m.nombreAsesor", String.class);
+            return query.getResultList();
         } finally {
             if (em != null) {
                 em.close();

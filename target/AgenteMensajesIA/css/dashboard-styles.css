@@ -5,10 +5,10 @@
     --border-color: #2a2a2a;
     --text-light: #ececec;
     --text-muted: #a0a0a0;
-    --accent-color: #ffffff;      /* Acento principal: Blanco */
-    --success-color: #4ade80;     /* Verde para éxito */
-    --error-color: #f87171;       /* Rojo para errores */
-    --warn-color: #facc15;        /* Amarillo para alertas */
+    --accent-color: #ffffff;
+    --success-color: #4ade80;
+    --error-color: #f87171;
+    --warn-color: #facc15;
 }
 
 body, html {
@@ -25,7 +25,6 @@ body, html {
     min-height: 100vh;
 }
 
-/* --- BARRA LATERAL --- */
 .sidebar {
     width: 240px;
     background-color: var(--bg-sidebar);
@@ -66,12 +65,10 @@ body, html {
     font-weight: 600;
 }
 
-/* --- CONTENIDO PRINCIPAL --- */
 .main-content {
     flex-grow: 1;
     padding: 2rem 3rem;
     overflow-y: auto;
-    /* Se elimina el margin-left para que flexbox lo controle todo */
 }
 
 .main-header {
@@ -109,7 +106,6 @@ h3 {
     font-size: 1.5em;
 }
 
-/* --- Estilos para la Barra Lateral Plegable --- */
 .sidebar-toggle-btn {
     background: none;
     border: none;
@@ -137,7 +133,6 @@ h3 {
     border: none;
 }
 
-/* --- TABLAS --- */
 .table-container {
     overflow-x: auto;
     border: 1px solid var(--border-color);
@@ -176,9 +171,33 @@ tbody tr:hover {
 }
 .row-alert {
     background-color: rgba(220, 38, 38, 0.1);
-} /* Tono rojo sutil para alertas */
+}
 
-/* --- BOTONES Y OTROS ELEMENTOS --- */
+.filters-container {
+    padding: 1rem 1.5rem;
+    background-color: var(--bg-content);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.filters-container label {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.filter-select {
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    border-radius: 6px;
+    min-width: 200px;
+}
+
 .btn {
     padding: 0.6rem 1.2rem;
     border-radius: 6px;

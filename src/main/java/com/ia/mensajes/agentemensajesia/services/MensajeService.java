@@ -95,12 +95,12 @@ public class MensajeService {
         return null;
     }
 
-    public PaginatedResponse<Mensaje> obtenerMensajesPaginado(int numeroPagina, int tamanoPagina) {
-        long totalMensajes = mensajeDAO.contarTotalMensajes();
+    public PaginatedResponse<Mensaje> obtenerMensajesPaginado(String asesorFiltro, int numeroPagina, int tamanoPagina) {
+        long totalMensajes = mensajeDAO.contarTotalMensajes(asesorFiltro);
         if (totalMensajes == 0) {
             return new PaginatedResponse<>(Collections.emptyList(), 0, 0, 0);
         }
-        List<Mensaje> mensajes = mensajeDAO.buscarPaginado(numeroPagina, tamanoPagina);
+        List<Mensaje> mensajes = mensajeDAO.buscarPaginado(asesorFiltro, numeroPagina, tamanoPagina);
         int totalPaginas = (int) Math.ceil((double) totalMensajes / tamanoPagina);
         return new PaginatedResponse<>(mensajes, numeroPagina, totalPaginas, totalMensajes);
     }
@@ -121,5 +121,9 @@ public class MensajeService {
 
     public EstadisticaMensaje calcularEstadisticas() {
         return mensajeDAO.getEstadisticas();
+    }
+    
+    public List<String> obtenerNombresDeAsesores() {
+        return mensajeDAO.obtenerNombresDeAsesores();
     }
 }
