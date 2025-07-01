@@ -114,12 +114,12 @@ public class ClasificadorMensajes {
         // 3. Quitar los acentos
         texto = texto.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
         
-        // 4. --- CORRECCIÓN DEFINITIVA ---
-        // Eliminar CUALQUIER COSA que no sea una letra minúscula (a-z) o un espacio.
-        // Esto elimina números, símbolos, horas, etc., que confunden a la IA.
+        // 4. --- LÍNEA DE CORRECCIÓN CLAVE ---
+        // Elimina CUALQUIER COSA que no sea una letra minúscula (a-z) o un espacio.
+        // Esto previene errores con números, horas (2:00PM), valores monetarios (1.000.000), etc.
         texto = texto.replaceAll("[^a-z\\s]", " "); 
         
-        // 5. Quitar espacios extra y retornar
+        // 5. Quita espacios múltiples que puedan haber quedado y retorna
         return texto.trim().replaceAll("\\s+", " ");
     }
 
