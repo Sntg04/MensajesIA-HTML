@@ -1,11 +1,9 @@
 package com.ia.mensajes.agentemensajesia.services;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
-import edu.stanford.nlp.neural.rnn.RNNCoreAnnotations;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
-import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.util.CoreMap;
 
 import java.util.Properties;
@@ -18,11 +16,16 @@ public class SentimentAnalysisService {
     private SentimentAnalysisService() {
         System.out.println("Iniciando SentimentAnalysisService...");
         Properties props = new Properties();
-        // El 'sentiment' annotator depende de 'parse', que a su vez depende de 'tokenize,ssplit,pos,lemma'
+        
+        // --- CORRECCIÓN CLAVE ---
+        // Se especifica explícitamente la ruta de cada modelo requerido para español.
+        // Esto evita que la biblioteca busque los modelos por defecto en inglés.
         props.setProperty("annotators", "tokenize, ssplit, pos, lemma, parse, sentiment");
-        props.setProperty("coref.algorithm", "neural");
-        // Especifica que las propiedades son para español
-        props.setProperty("props", "StanfordCoreNLP-spanish.properties");
+        props.setProperty("tokenize.language", "es");
+        props.setProperty("pos.model", "edu/stanford/nlp/models/pos-tagger/spanish-ud.tagger");
+        props.setProperty("parse.model", "edu/stanford/nlp/models/lexparser/spanishPCFG.ser.gz");
+        props.setProperty("sentiment.model", "edu/stanford/nlp/models/sentiment/sentiment.spanish.unlabeled.uncased.simplification.dev.ser.gz");
+        // La propiedad 'props' ya no es necesaria, ya que hemos sido más específicos.
         
         this.pipeline = new StanfordCoreNLP(props);
         System.out.println("SentimentAnalysisService iniciado correctamente.");
@@ -38,7 +41,7 @@ public class SentimentAnalysisService {
     /**
      * Analiza el sentimiento de un texto y lo clasifica.
      * @param text El texto a analizar.
-     * @return Una cadena que representa el sentimiento: "Muy Negativo", "Negativo", "Neutral", "Positivo", "Muy Positivo".
+     * @return Una cadena que representa el sentimiento: "Very negative", "Negative", "Neutral", "Positive", "Very positive".
      */
     public String getSentiment(String text) {
         if (text == null || text.trim().isEmpty()) {
@@ -50,9 +53,7 @@ public class SentimentAnalysisService {
 
         // El sentimiento se analiza por oración. Usaremos el de la primera oración como el sentimiento general.
         for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
-            Tree tree = sentence.get(SentimentCoreAnnotations.SentimentAnnotatedTree.class);
-            // RNNCoreAnnotations.getPredictedClass(tree) devuelve un número de 0 (Muy Negativo) a 4 (Muy Positivo)
-            // Aquí simplemente retornamos la etiqueta de texto.
+            // Retorna la etiqueta de sentimiento (en inglés, ya que es el output del modelo)
             return sentence.get(SentimentCoreAnnotations.SentimentClass.class);
         }
         
