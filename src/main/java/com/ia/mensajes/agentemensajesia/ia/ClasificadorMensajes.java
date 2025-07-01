@@ -20,21 +20,21 @@ public class ClasificadorMensajes {
     private POSTaggerME posTagger;
     private LemmatizerME lemmatizer;
 
-    // --- NUEVA CONSTANTE CON LA SUGERENCIA ---
     private static final String SUGERENCIA_REFORMULACION = "Sugerencia: Intente reformular la frase usando un tono más neutral y enfocado en soluciones, evitando palabras que puedan interpretarse como una amenaza o presión.";
 
+    // --- LISTA DE PALABRAS ACTUALIZADA SEGÚN LA IMAGEN ---
     private static final Set<String> PALABRAS_ALERTA_LEMAS = new HashSet<>(Arrays.asList(
-            // Palabras originales que indican SPAM o Phishing
-            "urgente", "importante", "premio", "ganador", "oferta", "gratis",
-            "promocion", "descuento", "exclusivo", "limitado", "click", "aqui",
-            "verificar", "cuenta", "banco", "tarjeta", "credito", "contrasena",
-            "seguridad", "suspension", "factura", "fraude", "hack",
-
-            // Palabras añadidas para indicar cobranza o tono crítico
-            "deber", "obligacion", "incumplimiento", "proceso", "juridico", "abogado",
-            "embargo", "retencion", "sancion", "demanda", "legal", "reportar", "cobro",
-            "amenaza", "consecuencia", "evasion", "responsabilidad", "deuda", "mora",
-            "buro", "presion", "penalizacion", "visita", "tercero", "localizacion", "castigado"
+            "abogado", "accion", "aplicacion", "automatico", "buro", "busqueda",
+            "cartera", "castigado", "cobranza", "cobro", "contacto", "credito",
+            "critico", "cuenta", "deber", "debito", "definitivo", "departamento",
+            "derecha", "desentendido", "deuda", "domiciliaria", "drastica",
+            "embargo", "escala", "evasion", "evasivo", "excusa", "externo",
+            "financiero", "hacer", "honorario", "ignorar", "incumplimiento",
+            "inmediato", "instancia", "interno", "irresponsable", "juridico",
+            "legal", "localizacion", "medida", "mora", "negativo", "obligacion",
+            "pago", "penalizacion", "portafolio", "presion", "proceder", "proceso",
+            "protocolo", "referencia", "renuencia", "reportar", "responsabilidad",
+            "retencion", "sancion", "silencio", "tercero", "tomar", "traslado", "visita"
     ));
 
     private ClasificadorMensajes() {
@@ -91,7 +91,7 @@ public class ClasificadorMensajes {
 
             for (String lema : lemas) {
                 if (PALABRAS_ALERTA_LEMAS.contains(lema)) {
-                    // --- LÓGICA DE OBSERVACIÓN MEJORADA ---
+                    // La lógica de observación mejorada se mantiene
                     String observacion = "Palabra clave: '" + lema + "'. " + SUGERENCIA_REFORMULACION;
                     return new ResultadoClasificacion("Alerta", observacion);
                 }
