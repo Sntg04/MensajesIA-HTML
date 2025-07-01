@@ -1,8 +1,9 @@
 package com.ia.mensajes.agentemensajesia.config;
 
+import com.ia.mensajes.agentemensajesia.ia.ClasificadorMensajes;
 import com.ia.mensajes.agentemensajesia.model.Usuario;
 import com.ia.mensajes.agentemensajesia.util.JPAUtil;
-import com.ia.mensajes.agentemensajesia.util.PasswordHasherUtil; // Asegúrate de importar esto
+import com.ia.mensajes.agentemensajesia.util.PasswordHasherUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.servlet.ServletContextEvent;
@@ -15,55 +16,56 @@ public class InitialDataSeeder implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        System.out.println("INICIADOR: La aplicación web ha arrancado. Verificando datos iniciales...");
+        System.out.println("INICIADOR: La aplicación web ha arrancado.");
+
+        // --- PRECARGA DE MODELOS DE IA ---
+        // Se inicia la carga en un hilo separado para no bloquear el arranque principal de la aplicación.
+        new Thread(() -> {
+            System.out.println("INICIADOR: Iniciando la carga de modelos de IA en segundo plano...");
+            ClasificadorMensajes.getInstance().init();
+            System.out.println("INICIADOR: Modelos de IA cargados y listos para usar.");
+        }).start();
+        
+        System.out.println("INICIADOR: Verificando datos iniciales de la base de datos...");
         EntityManager em = null;
         try {
-            // Obtenemos un EntityManager directamente de la utilidad JPA
+            // Se obtiene un EntityManager para la creación del usuario administrador.
             em = JPAUtil.getEntityManagerFactory().createEntityManager();
 
-            // Verificamos si el usuario 'admin' ya existe de una forma más directa
+            // Se verifica si el usuario 'admin' ya existe.
             TypedQuery<Long> query = em.createQuery("SELECT COUNT(u) FROM Usuario u WHERE u.username = :username", Long.class);
             query.setParameter("username", "admin");
             Long adminCount = query.getSingleResult();
 
-            // Si no existe, lo creamos
+            // Si el conteo es 0, se crea el usuario por defecto.
             if (adminCount == 0) {
                 System.out.println(">>> Usuario 'admin' no encontrado. Creando usuario por defecto...");
 
-                // Iniciamos una transacción
                 em.getTransaction().begin();
 
                 Usuario admin = new Usuario();
                 admin.setUsername("admin");
-                
-                // Hasheamos la contraseña directamente usando la clase de utilidad
                 admin.setPasswordHash(PasswordHasherUtil.hashPassword("admin123"));
-                
                 admin.setRol("admin");
                 admin.setNombreCompleto("Administrador del Sistema");
                 admin.setActivo(true);
                 admin.setFechaCreacion(new Date());
 
-                // Persistimos el nuevo usuario
                 em.persist(admin);
-                
-                // Confirmamos la transacción
                 em.getTransaction().commit();
 
                 System.out.println(">>> ¡Usuario 'admin' creado exitosamente!");
             } else {
                 System.out.println(">>> El usuario 'admin' ya existe en la base de datos.");
             }
-        } catch (Throwable t) { // Usamos Throwable para capturar cualquier tipo de error posible
+        } catch (Throwable t) { 
             System.err.println("!!! ERROR CRÍTICO IRRECUPERABLE DURANTE LA INICIALIZACIÓN DE DATOS !!!");
-            t.printStackTrace(); // Imprimimos el error completo
+            t.printStackTrace(); 
             if (em != null && em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
             }
-            // Lanzamos una excepción para que el fallo del despliegue sea evidente
             throw new RuntimeException("Fallo catastrófico en InitialDataSeeder, la aplicación no puede arrancar.", t);
         } finally {
-            // Cerramos el EntityManager
             if (em != null && em.isOpen()) {
                 em.close();
             }

@@ -1,6 +1,6 @@
 package com.ia.mensajes.agentemensajesia.ia;
 
-import com.ia.mensajes.agentemensajesia.services.SentimentAnalysisService; // Importar el nuevo servicio
+import com.ia.mensajes.agentemensajesia.services.SentimentAnalysisService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
@@ -16,16 +16,15 @@ import opennlp.tools.tokenize.TokenizerModel;
 public class ClasificadorMensajes {
 
     private static ClasificadorMensajes instance;
-    private final TokenizerME tokenizer;
-    private final POSTaggerME posTagger;
-    private final LemmatizerME lemmatizer;
-    private final SentimentAnalysisService sentimentService; // Instancia del nuevo servicio
+    private TokenizerME tokenizer;
+    private POSTaggerME posTagger;
+    private LemmatizerME lemmatizer;
+    private SentimentAnalysisService sentimentService;
 
+    // ... (El Map de PUNTUACION_ALERTA y la constante SUGERENCIA_REFORMULACION se mantienen igual)
     private static final String SUGERENCIA_REFORMULACION = "Sugerencia: Intente reformular la frase usando un tono más neutral y enfocado en soluciones, evitando palabras que puedan interpretarse como una amenaza o presión.";
-
     private static final Map<String, Integer> PUNTUACION_ALERTA = new HashMap<>();
     static {
-        // (Tu sistema de puntuación se mantiene igual)
         PUNTUACION_ALERTA.put("embargo", 10);
         PUNTUACION_ALERTA.put("juridico", 10);
         PUNTUACION_ALERTA.put("desentendido", 10);
@@ -49,35 +48,40 @@ public class ClasificadorMensajes {
         PUNTUACION_ALERTA.put("proceso", 1);
         PUNTUACION_ALERTA.put("responsabilidad", 1);
     }
-
+    
     private ClasificadorMensajes() {
-        try {
-            System.out.println("Cargando modelos de OpenNLP...");
-            // ... (Carga de modelos de OpenNLP se mantiene igual)
-            try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
-                 InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
-                 InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin")) {
+      // Constructor vacío
+    }
 
-                if (tokenModelIn == null) throw new IOException("No se encontró el modelo de tokenizer.");
-                this.tokenizer = new TokenizerME(new TokenizerModel(tokenModelIn));
-                if (posModelIn == null) throw new IOException("No se encontró el modelo POS.");
-                this.posTagger = new POSTaggerME(new POSModel(posModelIn));
-                if (lemmaModelIn == null) throw new IOException("No se encontró el modelo de lematización.");
-                this.lemmatizer = new LemmatizerME(new LemmatizerModel(lemmaModelIn));
+    // Método de inicialización
+    public void init() {
+        if (this.tokenizer == null) { // Solo inicializa si no lo ha hecho ya
+             try {
+                System.out.println("Cargando modelos de OpenNLP...");
+                try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
+                     InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
+                     InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin")) {
+
+                    if (tokenModelIn == null) throw new IOException("No se encontró el modelo de tokenizer.");
+                    this.tokenizer = new TokenizerME(new TokenizerModel(tokenModelIn));
+                    if (posModelIn == null) throw new IOException("No se encontró el modelo POS.");
+                    this.posTagger = new POSTaggerME(new POSModel(posModelIn));
+                    if (lemmaModelIn == null) throw new IOException("No se encontró el modelo de lematización.");
+                    this.lemmatizer = new LemmatizerME(new LemmatizerModel(lemmaModelIn));
+                }
+                System.out.println("Modelos OpenNLP cargados.");
+
+                this.sentimentService = SentimentAnalysisService.getInstance();
+                this.sentimentService.init(); // Inicializa el servicio de sentimiento
+
+            } catch (Exception e) {
+                System.err.println("Error fatal durante la inicialización de los servicios de IA.");
+                e.printStackTrace();
+                throw new RuntimeException("Fallo al cargar los modelos de IA.", e);
             }
-            System.out.println("Modelos OpenNLP cargados.");
-
-            // Inicializar el nuevo servicio de sentimiento
-            this.sentimentService = SentimentAnalysisService.getInstance();
-
-        } catch (Exception e) {
-            System.err.println("Error fatal durante la inicialización de los servicios de IA.");
-            e.printStackTrace();
-            throw new RuntimeException("Fallo al cargar los modelos de IA.", e);
         }
     }
     
-    // getInstance() y normalizar() se mantienen iguales
     public static synchronized ClasificadorMensajes getInstance() {
         if (instance == null) {
             instance = new ClasificadorMensajes();
@@ -85,6 +89,7 @@ public class ClasificadorMensajes {
         return instance;
     }
 
+    // ... (El método normalizar() se mantiene igual)
     private String normalizar(String texto) {
         if (texto == null) return "";
         texto = texto.toLowerCase();
@@ -94,14 +99,17 @@ public class ClasificadorMensajes {
         return texto;
     }
 
-
-    // --- MÉTODO CLASIFICAR ACTUALIZADO ---
+    // ... (El método clasificar() se mantiene igual)
     public ResultadoClasificacion clasificar(String textoMensaje) {
+        if (tokenizer == null || sentimentService == null) {
+            System.err.println("ERROR: El clasificador fue llamado antes de ser inicializado.");
+            return new ResultadoClasificacion("Error de Análisis", "El motor de IA no está listo.");
+        }
         if (textoMensaje == null || textoMensaje.trim().isEmpty()) {
             return new ResultadoClasificacion("Bueno", "N/A");
         }
         try {
-            // --- 1. Clasificación por Puntuación de Riesgo (como antes) ---
+            // ... la lógica interna de clasificación no cambia
             String mensajeNormalizado = normalizar(textoMensaje);
             String[] tokens = tokenizer.tokenize(mensajeNormalizado);
             String[] tags = posTagger.tag(tokens);
@@ -128,17 +136,14 @@ public class ClasificadorMensajes {
                 return new ResultadoClasificacion("Alerta", observacion);
             }
 
-            // --- 2. Análisis de Sentimiento (nueva capa de inteligencia) ---
             String sentimiento = sentimentService.getSentiment(textoMensaje);
 
-            if ("Muy Negativo".equals(sentimiento) || "Negativo".equals(sentimiento)) {
+            if ("Very negative".equalsIgnoreCase(sentimiento) || "Negative".equalsIgnoreCase(sentimiento)) {
                  String observacion = "Riesgo por tono emocional. Sentimiento detectado: " + sentimiento + ". " + SUGERENCIA_REFORMULACION;
                  return new ResultadoClasificacion("Alerta", observacion);
             }
 
-            // Si pasa ambas pruebas, es un mensaje bueno.
             return new ResultadoClasificacion("Bueno", "N/A");
-
         } catch (Exception e) {
             System.err.println("ERROR: Fallo el procesamiento de NLP para un mensaje: " + textoMensaje);
             e.printStackTrace();
