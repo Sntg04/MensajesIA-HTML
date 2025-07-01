@@ -56,13 +56,11 @@ public class ClasificadorMensajes {
     }
 
     private ClasificadorMensajes() {
-      // Constructor vacío para inicialización controlada
+      // Constructor vacío
     }
 
     public void init() {
-        if (isReady || isInitializing) {
-            return;
-        }
+        if (isReady || isInitializing) return;
         synchronized (this) {
             if (isReady || isInitializing) return;
             isInitializing = true;
@@ -78,7 +76,7 @@ public class ClasificadorMensajes {
                 System.out.println("Modelos OpenNLP cargados.");
                 this.sentimentService = SentimentAnalysisService.getInstance();
                 this.sentimentService.init();
-                isReady = true; // La IA está lista
+                isReady = true;
             } catch (Exception e) {
                 System.err.println("Error fatal durante la inicialización de los servicios de IA.");
                 throw new RuntimeException("Fallo al cargar los modelos de IA.", e);
@@ -120,8 +118,9 @@ public class ClasificadorMensajes {
 
     public ResultadoClasificacion clasificar(String textoMensaje) {
         if (!isReady) {
-             System.err.println("ERROR: El clasificador fue llamado antes de estar listo. Un proceso no esperó correctamente.");
-             return new ResultadoClasificacion("Error de Análisis", "El motor de IA aún se está inicializando. Intente de nuevo en unos momentos.");
+             System.err.println("ERROR CRÍTICO: El clasificador fue llamado antes de que la inicialización estuviera completa.");
+             // Devolvemos un error claro para que sea visible en el frontend.
+             return new ResultadoClasificacion("Error de Sistema", "El motor de IA aún se está inicializando. Por favor, intente de nuevo en unos momentos.");
         }
         if (textoMensaje == null || textoMensaje.trim().isEmpty()) {
             return new ResultadoClasificacion("Bueno", "N/A");

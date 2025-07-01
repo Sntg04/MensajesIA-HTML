@@ -1,10 +1,12 @@
 package com.ia.mensajes.agentemensajesia.resources;
 
+import com.ia.mensajes.agentemensajesia.ia.ClasificadorMensajes;
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.model.PaginatedResponse;
 import com.ia.mensajes.agentemensajesia.services.ExcelExportService;
 import com.ia.mensajes.agentemensajesia.services.MensajeService;
+import com.ia.mensajes.agentemensajesia.services.SentimentAnalysisService;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -60,7 +62,7 @@ public class MensajeResource {
             }).start();
 
             return Response.status(Response.Status.ACCEPTED)
-                           .entity(Map.of("mensaje", "Archivo recibido.", "loteId", loteId))
+                           .entity(Map.of("mensaje", "Archivo recibido. Procesando en segundo plano...", "loteId", loteId))
                            .type(MediaType.APPLICATION_JSON)
                            .build();
         } catch (IOException e) {
@@ -72,6 +74,37 @@ public class MensajeResource {
         }
     }
 
+    @POST
+    @Path("/probar-sentimiento")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response probarSentimiento(String texto) {
+        
+        ClasificadorMensajes.getInstance().waitForReady();
+        
+        if (texto == null || texto.trim().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                           .entity(Map.of("error", "Se requiere un texto para analizar."))
+                           .build();
+        }
+        try {
+            SentimentAnalysisService sentimentService = SentimentAnalysisService.getInstance();
+            String sentimiento = sentimentService.getSentiment(texto);
+            
+            Map<String, String> resultado = Map.of(
+                "texto_analizado", texto,
+                "sentimiento_detectado", sentimiento
+            );
+            
+            return Response.ok(resultado).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity(Map.of("error", "Error interno al procesar el sentimiento: " + e.getMessage()))
+                           .build();
+        }
+    }
+    
     @GET
     @Path("/lotes/{loteId}/status")
     @Produces(MediaType.APPLICATION_JSON)
@@ -124,7 +157,6 @@ public class MensajeResource {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Error al generar el archivo Excel.").build();
         }
     }
-    // Agrega este nuevo endpoint dentro de la clase MensajeResource
 
     @GET
     @Path("/lote/{loteId}")
@@ -132,7 +164,7 @@ public class MensajeResource {
     public Response getMensajesPorLote(
             @PathParam("loteId") String loteId,
             @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size) {
+            @QueryParam("size") @DefaultValue("10") int size) { // <-- AQUÍ ESTABA EL ERROR
         try {
             var paginatedResponse = mensajeService.obtenerMensajesPaginadoPorLote(loteId, page, size);
             return Response.ok(paginatedResponse).build();

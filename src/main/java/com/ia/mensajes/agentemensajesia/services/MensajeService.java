@@ -24,19 +24,14 @@ public class MensajeService {
 
     private final MensajeDAO mensajeDAO = new MensajeDAO();
 
-    /**
-     * Borra el historial anterior, procesa un archivo Excel, clasifica los mensajes 
-     * en paralelo, actualiza el progreso y los guarda en la base de datos.
-     * @param inputStream El stream de datos del archivo .xlsx.
-     * @param loteId El identificador único para el lote de procesamiento.
-     */
     public void procesarYGuardarMensajesDesdeExcel(InputStream inputStream, String loteId) throws Exception {
         
-        // --- INICIO DE LA LÓGICA DE BORRADO ---
-        // 1. Borrar todos los mensajes existentes ANTES de procesar el nuevo archivo.
-        mensajeDAO.borrarTodos();
-        // --- FIN DE LA LÓGICA DE BORRADO ---
+        // ---- LÍNEA CLAVE ----
+        // El hilo de procesamiento esperará aquí hasta que la IA esté 100% cargada.
+        ClasificadorMensajes.getInstance().waitForReady();
 
+        mensajeDAO.borrarTodos();
+        
         List<Row> rows = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -61,20 +56,15 @@ public class MensajeService {
                 int progress = (int) (((double) count / totalRows) * 100);
                 MensajeResource.jobStatuses.get(loteId).setProgress(progress);
 
-                String app = getCellValueAsString(row.getCell(0), formatter);
-                String idCliente = getCellValueAsString(row.getCell(1), formatter);
-                String asesor = getCellValueAsString(row.getCell(9), formatter);
-                LocalDateTime fechaHora = getCellLocalDateTime(row.getCell(10), formatter);
-                
                 ClasificadorMensajes clasificador = ClasificadorMensajes.getInstance();
                 ResultadoClasificacion resultado = clasificador.clasificar(textoMensaje);
 
                 Mensaje nuevoMensaje = new Mensaje();
-                nuevoMensaje.setAplicacion(app);
-                nuevoMensaje.setIdCliente(idCliente);
+                nuevoMensaje.setAplicacion(getCellValueAsString(row.getCell(0), formatter));
+                nuevoMensaje.setIdCliente(getCellValueAsString(row.getCell(1), formatter));
                 nuevoMensaje.setTexto(textoMensaje);
-                nuevoMensaje.setNombreAsesor(asesor);
-                nuevoMensaje.setFechaHoraMensaje(fechaHora);
+                nuevoMensaje.setNombreAsesor(getCellValueAsString(row.getCell(9), formatter));
+                nuevoMensaje.setFechaHoraMensaje(getCellLocalDateTime(row.getCell(10), formatter));
                 nuevoMensaje.setClasificacion(resultado.getCategoria());
                 nuevoMensaje.setObservacion(resultado.getObservacion());
                 nuevoMensaje.setFechaProcesamiento(new Date());
@@ -89,8 +79,6 @@ public class MensajeService {
             mensajeDAO.guardarVarios(mensajesProcesados);
         }
     }
-
-    // --- El resto de los métodos se mantienen igual ---
 
     private String getCellValueAsString(Cell cell, DataFormatter formatter) {
         if (cell == null) return null;
