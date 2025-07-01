@@ -1,6 +1,6 @@
 let currentLoteId = null;
 let currentPage = 0;
-let currentAsesorFilter = ''; // Variable para el filtro de asesor
+let currentAsesorFilter = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!localStorage.getItem('jwtToken')) {
@@ -61,9 +61,13 @@ function switchView(targetId) {
     if (targetId === 'mensajes') {
         localStorage.removeItem('currentLoteId');
         currentLoteId = null;
-        currentAsesorFilter = ''; // Limpiar filtro de asesor también
+        currentAsesorFilter = '';
         document.getElementById('asesor-filter').value = '';
         cargarMensajes(0);
+    }
+    if (targetId === 'estadisticas') {
+        cargarEstadisticas();
+        cargarEstadisticasAsesor(); // Cargar la nueva tabla al ver las estadísticas
     }
 }
 
@@ -86,7 +90,7 @@ async function fetchAPI(url, options = {}) {
     return response.blob();
 }
 
-// --- SECCIÓN: GESTIÓN DE USUARIOS (Sin cambios) ---
+// --- SECCIÓN: GESTIÓN DE USUARIOS ---
 function showUserModal(user = null) {
     const form = document.getElementById('user-form');
     form.reset();
@@ -101,26 +105,15 @@ function showUserModal(user = null) {
     document.getElementById('username').disabled = isEditing;
     document.getElementById('user-modal').style.display = 'flex';
 }
-
-function hideUserModal() {
-    document.getElementById('user-modal').style.display = 'none';
-}
-
+function hideUserModal() { document.getElementById('user-modal').style.display = 'none'; }
 async function handleUserFormSubmit(event) {
     event.preventDefault();
     const id = document.getElementById('user-id').value;
     const isEditing = !!id;
     const password = document.getElementById('password').value;
-    const userData = {
-        nombreCompleto: document.getElementById('nombreCompleto').value,
-        rol: document.getElementById('rol').value
-    };
-    if (!isEditing) {
-        userData.username = document.getElementById('username').value;
-    }
-    if (password) {
-        userData.passwordHash = password;
-    }
+    const userData = { nombreCompleto: document.getElementById('nombreCompleto').value, rol: document.getElementById('rol').value };
+    if (!isEditing) { userData.username = document.getElementById('username').value; }
+    if (password) { userData.passwordHash = password; }
     const url = isEditing ? `/api/usuarios/${id}` : '/api/usuarios';
     const method = isEditing ? 'PUT' : 'POST';
     try {
@@ -131,46 +124,29 @@ async function handleUserFormSubmit(event) {
         document.getElementById('form-error').textContent = `Error: ${error.message}`;
     }
 }
-
 async function handleUserTableActions(event) {
     const button = event.target.closest('button.btn-action');
     if (!button) return;
     const userId = button.dataset.id;
-
     if (button.classList.contains('btn-edit')) {
-        try {
-            const user = await fetchAPI(`/api/usuarios/${userId}`);
-            if (user) showUserModal(user);
-        } catch (error) {
-            alert(`Error al cargar datos del usuario: ${error.message}`);
-        }
+        try { const user = await fetchAPI(`/api/usuarios/${userId}`); if (user) showUserModal(user); }
+        catch (error) { alert(`Error al cargar datos del usuario: ${error.message}`); }
         return;
     }
-
     if (button.classList.contains('btn-deactivate')) {
         if (confirm('¿Seguro que quieres DESACTIVAR este usuario?')) {
-            try {
-                await fetchAPI(`/api/usuarios/${userId}/desactivar`, { method: 'DELETE' });
-                cargarUsuarios();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            try { await fetchAPI(`/api/usuarios/${userId}/desactivar`, { method: 'DELETE' }); cargarUsuarios(); }
+            catch (error) { alert(`Error: ${error.message}`); }
         }
         return;
     }
-
     if (button.classList.contains('btn-activate')) {
         if (confirm('¿Seguro que quieres ACTIVAR este usuario?')) {
-            try {
-                await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ activo: true }) });
-                cargarUsuarios();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
+            try { await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ activo: true }) }); cargarUsuarios(); }
+            catch (error) { alert(`Error: ${error.message}`); }
         }
     }
 }
-
 async function cargarUsuarios() {
     const userList = document.getElementById('userList');
     userList.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
@@ -183,26 +159,14 @@ async function cargarUsuarios() {
         }
         usuarios.forEach(u => {
             const fecha = new Date(u.fechaCreacion).toLocaleDateString('es-ES');
-            userList.innerHTML += `<tr>
-                <td>${u.id}</td>
-                <td>${u.username}</td>
-                <td>${u.nombreCompleto || 'N/A'}</td>
-                <td>${u.rol}</td>
-                <td>${u.activo ? 'Sí' : 'No'}</td>
-                <td>${fecha}</td>
-                <td>
-                    <button class="btn-action btn-edit" data-id="${u.id}">Editar</button>
-                    ${u.activo ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>` : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`}
-                </td>
-            </tr>`;
+            userList.innerHTML += `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.nombreCompleto || 'N/A'}</td><td>${u.rol}</td><td>${u.activo ? 'Sí' : 'No'}</td><td>${fecha}</td><td><button class="btn-action btn-edit" data-id="${u.id}">Editar</button>${u.activo ? `<button class="btn-action btn-deactivate" data-id="${u.id}">Desactivar</button>` : `<button class="btn-action btn-activate" data-id="${u.id}">Activar</button>`}</td></tr>`;
         });
     } catch (error) {
         userList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar usuarios: ${error.message}</td></tr>`;
     }
 }
 
-
-// --- SECCIÓN: GESTIÓN DE MENSAJES (MODIFICADA) ---
+// --- SECCIÓN: GESTIÓN DE MENSAJES ---
 
 async function cargarFiltroAsesores() {
     const select = document.getElementById('asesor-filter');
@@ -222,7 +186,7 @@ async function cargarFiltroAsesores() {
 
 function handleAsesorFilterChange(event) {
     currentAsesorFilter = event.target.value;
-    currentLoteId = null; // Un filtro de asesor anula el filtro por lote
+    currentLoteId = null; 
     localStorage.removeItem('currentLoteId');
     cargarMensajes(0);
 }
@@ -231,10 +195,8 @@ async function cargarMensajes(page = 0) {
     currentPage = page;
     const messageList = document.getElementById('messageList');
     messageList.innerHTML = `<tr><td colspan="7">Cargando página ${page + 1}...</td></tr>`;
-
     const params = new URLSearchParams({ page, size: 10 });
     let url;
-
     if (currentLoteId) {
         url = `/api/mensajes/lote/${currentLoteId}?${params.toString()}`;
     } else {
@@ -243,7 +205,6 @@ async function cargarMensajes(page = 0) {
         }
         url = `/api/mensajes?${params.toString()}`;
     }
-    
     try {
         const paginatedData = await fetchAPI(url);
         const mensajes = paginatedData.content;
@@ -258,15 +219,7 @@ async function cargarMensajes(page = 0) {
         }
         mensajes.forEach(m => {
             let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
-            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}">
-                <td>${m.id}</td>
-                <td>${m.nombreAsesor || 'N/A'}</td>
-                <td>${m.aplicacion || 'N/A'}</td>
-                <td>${m.texto}</td>
-                <td>${m.clasificacion}</td>
-                <td><pre>${m.observacion || 'N/A'}</pre></td>
-                <td>${fechaMensaje}</td>
-            </tr>`;
+            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td><pre>${m.observacion || 'N/A'}</pre></td><td>${fechaMensaje}</td></tr>`;
         });
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
     } catch (error) {
@@ -333,9 +286,30 @@ async function cargarEstadisticas() {
     statsContainer.innerHTML = 'Cargando...';
     try {
         const stats = await fetchAPI('/api/mensajes/stats');
-        statsContainer.innerHTML = `<p><strong>Total de Mensajes:</strong> ${stats.totalMensajes || 0}</p>`;
+        statsContainer.innerHTML = `<p><strong>Total de Mensajes Global:</strong> ${stats.totalMensajes || 0}</p>`;
     } catch (error) {
-        statsContainer.innerHTML = `<p class="error-message">Error al cargar estadísticas.</p>`;
+        statsContainer.innerHTML = `<p class="error-message">Error al cargar estadísticas generales.</p>`;
+    }
+}
+
+async function cargarEstadisticasAsesor() {
+    const statsList = document.getElementById('asesor-stats-list');
+    statsList.innerHTML = '<tr><td colspan="2">Cargando...</td></tr>';
+    try {
+        const stats = await fetchAPI('/api/mensajes/stats/por-asesor');
+        statsList.innerHTML = '';
+        if (!stats || stats.length === 0) {
+            statsList.innerHTML = '<tr><td colspan="2">No hay datos por asesor para mostrar.</td></tr>';
+            return;
+        }
+        stats.forEach(s => {
+            statsList.innerHTML += `<tr>
+                <td>${s.nombreAsesor || 'Sin Asignar'}</td>
+                <td>${s.totalMensajes}</td>
+            </tr>`;
+        });
+    } catch (error) {
+        statsList.innerHTML = `<tr><td colspan="2" class="error-message">Error al cargar estadísticas por asesor.</td></tr>`;
     }
 }
 
@@ -383,12 +357,12 @@ function pollLoteStatus(loteId) {
                 progressBar.style.backgroundColor = 'var(--success-color)';
                 setTimeout(() => {
                     localStorage.setItem('currentLoteId', loteId);
-                    currentAsesorFilter = ''; // Limpiar filtro de asesor al cargar nuevo lote
+                    currentAsesorFilter = '';
                     document.getElementById('asesor-filter').value = '';
                     showTargetView('mensajes');
                     cargarMensajes(0);
                     cargarEstadisticas();
-                    cargarFiltroAsesores(); // Recargar la lista de asesores
+                    cargarFiltroAsesores();
                     progressContainer.style.display = 'none';
                     progressBar.style.width = '0%';
                     progressBar.style.backgroundColor = 'var(--text-light)';

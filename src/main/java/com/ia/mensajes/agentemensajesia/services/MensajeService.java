@@ -3,6 +3,7 @@ package com.ia.mensajes.agentemensajesia.services;
 import com.ia.mensajes.agentemensajesia.dao.MensajeDAO;
 import com.ia.mensajes.agentemensajesia.ia.ClasificadorMensajes;
 import com.ia.mensajes.agentemensajesia.ia.ResultadoClasificacion;
+import com.ia.mensajes.agentemensajesia.model.AsesorStats; // <-- Importar el nuevo DTO
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.model.PaginatedResponse;
@@ -25,11 +26,8 @@ public class MensajeService {
     private final MensajeDAO mensajeDAO = new MensajeDAO();
 
     public void procesarYGuardarMensajesDesdeExcel(InputStream inputStream, String loteId) throws Exception {
-        
         ClasificadorMensajes.getInstance().waitForReady();
-
         mensajeDAO.borrarTodos();
-        
         List<Row> rows = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -42,36 +40,28 @@ public class MensajeService {
         final long totalRows = rows.size();
         final AtomicLong processedCount = new AtomicLong(0);
         final DataFormatter formatter = new DataFormatter();
-
         MensajeResource.jobStatuses.get(loteId).setStatus("PROCESANDO");
 
-        List<Mensaje> mensajesProcesados = rows.parallelStream()
-            .map(row -> {
-                String textoMensaje = getCellValueAsString(row.getCell(7), formatter);
-                if (textoMensaje == null || textoMensaje.isEmpty()) return null;
-
-                long count = processedCount.incrementAndGet();
-                int progress = (int) (((double) count / totalRows) * 100);
-                MensajeResource.jobStatuses.get(loteId).setProgress(progress);
-
-                ClasificadorMensajes clasificador = ClasificadorMensajes.getInstance();
-                ResultadoClasificacion resultado = clasificador.clasificar(textoMensaje);
-
-                Mensaje nuevoMensaje = new Mensaje();
-                nuevoMensaje.setAplicacion(getCellValueAsString(row.getCell(0), formatter));
-                nuevoMensaje.setIdCliente(getCellValueAsString(row.getCell(1), formatter));
-                nuevoMensaje.setTexto(textoMensaje);
-                nuevoMensaje.setNombreAsesor(getCellValueAsString(row.getCell(9), formatter));
-                nuevoMensaje.setFechaHoraMensaje(getCellLocalDateTime(row.getCell(10), formatter));
-                nuevoMensaje.setClasificacion(resultado.getCategoria());
-                nuevoMensaje.setObservacion(resultado.getObservacion());
-                nuevoMensaje.setFechaProcesamiento(new Date());
-                nuevoMensaje.setLote(loteId);
-
-                return nuevoMensaje;
-            })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+        List<Mensaje> mensajesProcesados = rows.parallelStream().map(row -> {
+            String textoMensaje = getCellValueAsString(row.getCell(7), formatter);
+            if (textoMensaje == null || textoMensaje.isEmpty()) return null;
+            long count = processedCount.incrementAndGet();
+            int progress = (int) (((double) count / totalRows) * 100);
+            MensajeResource.jobStatuses.get(loteId).setProgress(progress);
+            ClasificadorMensajes clasificador = ClasificadorMensajes.getInstance();
+            ResultadoClasificacion resultado = clasificador.clasificar(textoMensaje);
+            Mensaje nuevoMensaje = new Mensaje();
+            nuevoMensaje.setAplicacion(getCellValueAsString(row.getCell(0), formatter));
+            nuevoMensaje.setIdCliente(getCellValueAsString(row.getCell(1), formatter));
+            nuevoMensaje.setTexto(textoMensaje);
+            nuevoMensaje.setNombreAsesor(getCellValueAsString(row.getCell(9), formatter));
+            nuevoMensaje.setFechaHoraMensaje(getCellLocalDateTime(row.getCell(10), formatter));
+            nuevoMensaje.setClasificacion(resultado.getCategoria());
+            nuevoMensaje.setObservacion(resultado.getObservacion());
+            nuevoMensaje.setFechaProcesamiento(new Date());
+            nuevoMensaje.setLote(loteId);
+            return nuevoMensaje;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
 
         if (!mensajesProcesados.isEmpty()) {
             mensajeDAO.guardarVarios(mensajesProcesados);
@@ -125,5 +115,16 @@ public class MensajeService {
     
     public List<String> obtenerNombresDeAsesores() {
         return mensajeDAO.obtenerNombresDeAsesores();
+    }
+    
+    /**
+     * NUEVO MÉTODO: Obtiene y procesa las estadísticas por asesor.
+     * @return Una lista de objetos AsesorStats.
+     */
+    public List<AsesorStats> obtenerEstadisticasPorAsesor() {
+        List<Object[]> resultados = mensajeDAO.contarMensajesPorAsesor();
+        return resultados.stream()
+                .map(resultado -> new AsesorStats((String) resultado[0], (Long) resultado[1]))
+                .collect(Collectors.toList());
     }
 }

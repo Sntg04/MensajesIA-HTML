@@ -24,7 +24,6 @@ public class ClasificadorMensajes {
     private LemmatizerME lemmatizer;
     private SentimentAnalysisService sentimentService;
     
-    // Banderas de estado para controlar la inicialización de forma segura
     private volatile boolean isInitializing = false;
     private volatile boolean isReady = false;
 
@@ -60,14 +59,12 @@ public class ClasificadorMensajes {
     }
 
     public void init() {
-        if (isReady || isInitializing) {
-            return;
-        }
+        if (isReady || isInitializing) return;
         synchronized (this) {
             if (isReady || isInitializing) return;
             isInitializing = true;
             try {
-                System.out.println("Cargando modelos de OpenNLP...");
+                System.out.println("Cargando modelos de OpenNLP (versión ligera)...");
                 try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
                      InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
                      InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin")) {
@@ -78,7 +75,7 @@ public class ClasificadorMensajes {
                 System.out.println("Modelos OpenNLP cargados.");
                 this.sentimentService = SentimentAnalysisService.getInstance();
                 this.sentimentService.init();
-                isReady = true; // La IA está lista
+                isReady = true;
             } catch (Exception e) {
                 System.err.println("Error fatal durante la inicialización de los servicios de IA.");
                 throw new RuntimeException("Fallo al cargar los modelos de IA.", e);
@@ -88,7 +85,6 @@ public class ClasificadorMensajes {
         }
     }
     
-    // Método crucial para la sincronización
     public void waitForReady() {
         if (isReady) return;
         System.out.println("Un proceso está esperando a que los modelos de IA terminen de cargar...");
@@ -114,14 +110,15 @@ public class ClasificadorMensajes {
         texto = texto.toLowerCase();
         texto = Normalizer.normalize(texto, Normalizer.Form.NFD);
         texto = texto.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
-        texto = texto.replaceAll("[^a-z0-9\\s]", " ");
-        return texto;
+        // --- AQUÍ ESTÁ LA CORRECCIÓN ---
+        // Se elimina CUALQUIER COSA que no sea una letra o un espacio.
+        texto = texto.replaceAll("[^a-z\\s]", " "); 
+        return texto.trim();
     }
 
     public ResultadoClasificacion clasificar(String textoMensaje) {
         if (!isReady) {
              System.err.println("ERROR CRÍTICO: El clasificador fue llamado antes de que la inicialización estuviera completa.");
-             // Devolvemos un error claro para que sea visible en el frontend.
              return new ResultadoClasificacion("Error de Sistema", "El motor de IA aún se está inicializando. Por favor, intente de nuevo en unos momentos.");
         }
         if (textoMensaje == null || textoMensaje.trim().isEmpty()) {
@@ -146,7 +143,7 @@ public class ClasificadorMensajes {
             return generarObservacionProfunda(puntuacionTotal, palabrasDetectadas, sentimiento);
 
         } catch (Exception e) {
-            System.err.println("ERROR: Fallo el procesamiento de NLP para un mensaje: " + textoMensaje);
+            System.err.println("ERROR: Fallo el procesamiento de NLP para el mensaje: '" + textoMensaje + "'");
             e.printStackTrace();
             return new ResultadoClasificacion("Error de Análisis", "El motor de IA no pudo procesar este texto.");
         }
@@ -155,7 +152,9 @@ public class ClasificadorMensajes {
     private ResultadoClasificacion generarObservacionProfunda(int puntuacion, List<String> palabrasClave, String sentimiento) {
         final int UMBRAL_PUNTOS = 5;
         boolean esAlertaPorPuntos = puntuacion >= UMBRAL_PUNTOS;
-        boolean esAlertaPorTono = "Very negative".equalsIgnoreCase(sentimiento) || "Negative".equalsIgnoreCase(sentimiento);
+        
+        // Usamos la versión de desarrollo del servicio de sentimiento
+        boolean esAlertaPorTono = "Negative".equalsIgnoreCase(sentimiento);
 
         if (!esAlertaPorPuntos && !esAlertaPorTono) {
             return new ResultadoClasificacion("Bueno", "N/A");
@@ -164,16 +163,16 @@ public class ClasificadorMensajes {
         StringBuilder sb = new StringBuilder();
 
         if (esAlertaPorPuntos && esAlertaPorTono) {
-            sb.append("Diagnóstico: Alto Riesgo. Se detectaron palabras clave críticas y un tono emocional negativo.\n");
+            sb.append("Diagnóstico: Alto Riesgo. Se detectaron palabras clave críticas y un tono emocional negativo simulado.\n");
         } else if (esAlertaPorPuntos) {
             sb.append("Diagnóstico: Riesgo por Contenido. Se detectaron palabras clave específicas de cobranza.\n");
         } else {
-            sb.append("Diagnóstico: Riesgo por Tono. El mensaje tiene una carga emocional negativa.\n");
+            sb.append("Diagnóstico: Riesgo por Tono. El mensaje tiene una carga emocional negativa simulada.\n");
         }
 
         sb.append("\n--- Detalles del Análisis ---\n");
         if (esAlertaPorTono) {
-            sb.append("• Análisis de Tono: El sentimiento fue clasificado como '").append(sentimiento).append("'.\n");
+            sb.append("• Análisis de Tono (Simulado): El sentimiento fue clasificado como '").append(sentimiento).append("'.\n");
         }
         if (esAlertaPorPuntos) {
             String palabras = palabrasClave.stream().distinct().collect(Collectors.joining(", "));

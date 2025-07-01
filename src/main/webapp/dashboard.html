@@ -33,26 +33,18 @@
                         <h3>Mensajes Procesados</h3>
                         <button id="export-excel-btn" class="btn btn-primary">Exportar a Excel</button>
                     </div>
-
                     <div class="filters-container">
                         <label for="asesor-filter">Filtrar por Asesor:</label>
                         <select id="asesor-filter" class="filter-select">
                             <option value="">Todos los Asesores</option>
                         </select>
                     </div>
-
                     <div id="messageError" class="error-message"></div>
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Asesor</th>
-                                    <th>Aplicación</th>
-                                    <th>Mensaje</th>
-                                    <th>Clasificación</th>
-                                    <th>Observación</th>
-                                    <th>Fecha del Mensaje</th>
+                                    <th>ID</th><th>Asesor</th><th>Aplicación</th><th>Mensaje</th><th>Clasificación</th><th>Observación</th><th>Fecha del Mensaje</th>
                                 </tr>
                             </thead>
                             <tbody id="messageList"></tbody>
@@ -76,8 +68,25 @@
                 </div>
 
                 <div id="estadisticas" class="content-section">
-                    <h3>Estadísticas de Mensajes</h3>
-                    <div class="stats-card" id="messageStats"></div>
+                    <div class="section-header">
+                        <h3>Estadísticas de Mensajes</h3>
+                    </div>
+                    <div class="stats-card" id="messageStats">Cargando estadísticas generales...</div>
+                    <div class="stats-group">
+                        <h4 class="stats-subtitle">Mensajes por Asesor</h4>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Nombre del Asesor</th>
+                                        <th>Total de Mensajes Enviados</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="asesor-stats-list">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="carga" class="content-section">

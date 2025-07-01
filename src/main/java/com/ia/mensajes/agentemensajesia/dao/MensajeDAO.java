@@ -60,33 +60,7 @@ public class MensajeDAO {
             }
         }
     }
-
-    public List<Mensaje> listarPorLote(String loteId) {
-        EntityManager em = getEntityManager();
-        try {
-            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m WHERE m.lote = :loteId ORDER BY m.id", Mensaje.class);
-            query.setParameter("loteId", loteId);
-            return query.getResultList();
-        } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-            }
-        }
-    }
-
-    public List<Mensaje> listarAlertasPorLote(String loteId) {
-        EntityManager em = getEntityManager();
-        try {
-            TypedQuery<Mensaje> query = em.createQuery("SELECT m FROM Mensaje m WHERE m.lote = :loteId AND m.clasificacion = 'Alerta' ORDER BY m.id", Mensaje.class);
-            query.setParameter("loteId", loteId);
-            return query.getResultList();
-        } finally {
-            if (em != null && em.isOpen()) {
-                em.close();
-            }
-        }
-    }
-
+    
     public long contarTotalMensajes(String asesorFiltro) {
         EntityManager em = getEntityManager();
         try {
@@ -100,9 +74,7 @@ public class MensajeDAO {
             }
             return query.getSingleResult();
         } finally {
-            if (em != null) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
 
@@ -114,19 +86,15 @@ public class MensajeDAO {
                 queryString += " WHERE m.nombreAsesor = :asesor";
             }
             queryString += " ORDER BY m.fechaProcesamiento DESC";
-            
             TypedQuery<Mensaje> query = em.createQuery(queryString, Mensaje.class);
             if (asesorFiltro != null && !asesorFiltro.isEmpty()) {
                 query.setParameter("asesor", asesorFiltro);
             }
-            
             query.setFirstResult(numeroPagina * tamanoPagina);
             query.setMaxResults(tamanoPagina);
             return query.getResultList();
         } finally {
-            if (em != null) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
 
@@ -137,9 +105,7 @@ public class MensajeDAO {
             query.setParameter("loteId", loteId);
             return query.getSingleResult();
         } finally {
-            if (em != null) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
 
@@ -152,9 +118,7 @@ public class MensajeDAO {
             query.setMaxResults(tamanoPagina);
             return query.getResultList();
         } finally {
-            if (em != null) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
 
@@ -164,7 +128,6 @@ public class MensajeDAO {
             em.getTransaction().begin();
             em.createQuery("DELETE FROM Mensaje").executeUpdate();
             em.getTransaction().commit();
-            System.out.println("Historial de mensajes anteriores borrado exitosamente.");
         } catch (Exception e) {
             if (em.getTransaction() != null && em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
@@ -172,17 +135,29 @@ public class MensajeDAO {
             e.printStackTrace();
             throw new RuntimeException("Error al borrar todos los mensajes en DAO", e);
         } finally {
-            if (em != null) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
 
     public List<String> obtenerNombresDeAsesores() {
         EntityManager em = getEntityManager();
         try {
-            TypedQuery<String> query = em.createQuery(
-                "SELECT DISTINCT m.nombreAsesor FROM Mensaje m WHERE m.nombreAsesor IS NOT NULL AND m.nombreAsesor != '' ORDER BY m.nombreAsesor", String.class);
+            TypedQuery<String> query = em.createQuery("SELECT DISTINCT m.nombreAsesor FROM Mensaje m WHERE m.nombreAsesor IS NOT NULL AND m.nombreAsesor != '' ORDER BY m.nombreAsesor", String.class);
+            return query.getResultList();
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+
+    /**
+     * NUEVO MÉTODO: Cuenta los mensajes por cada asesor.
+     * @return Una lista de Object[], donde cada array contiene [nombreAsesor, conteo].
+     */
+    public List<Object[]> contarMensajesPorAsesor() {
+        EntityManager em = getEntityManager();
+        try {
+            TypedQuery<Object[]> query = em.createQuery(
+                "SELECT m.nombreAsesor, COUNT(m) FROM Mensaje m WHERE m.nombreAsesor IS NOT NULL GROUP BY m.nombreAsesor ORDER BY COUNT(m) DESC", Object[].class);
             return query.getResultList();
         } finally {
             if (em != null) {

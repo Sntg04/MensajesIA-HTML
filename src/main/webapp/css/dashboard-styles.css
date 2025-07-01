@@ -254,6 +254,18 @@ tbody tr:hover {
     border-radius: 8px;
     border: 1px solid var(--border-color);
 }
+
+.stats-group {
+    margin-top: 2.5rem;
+}
+
+.stats-subtitle {
+    font-size: 1.25em;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
 #uploadForm {
     display: flex;
     align-items: center;

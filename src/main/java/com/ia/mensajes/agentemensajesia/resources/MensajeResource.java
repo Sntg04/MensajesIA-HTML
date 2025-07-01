@@ -1,6 +1,7 @@
 package com.ia.mensajes.agentemensajesia.resources;
 
 import com.ia.mensajes.agentemensajesia.ia.ClasificadorMensajes;
+import com.ia.mensajes.agentemensajesia.model.AsesorStats; // <-- Importar el nuevo DTO
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.model.PaginatedResponse;
@@ -48,9 +49,7 @@ public class MensajeResource {
         try {
             final byte[] fileBytes = uploadedInputStream.readAllBytes();
             final String loteId = java.util.UUID.randomUUID().toString();
-            
             jobStatuses.put(loteId, new JobStatus("INICIANDO", 0));
-
             new Thread(() -> {
                 try (InputStream safeInputStream = new ByteArrayInputStream(fileBytes)) {
                     mensajeService.procesarYGuardarMensajesDesdeExcel(safeInputStream, loteId);
@@ -60,17 +59,10 @@ public class MensajeResource {
                     e.printStackTrace();
                 }
             }).start();
-
-            return Response.status(Response.Status.ACCEPTED)
-                           .entity(Map.of("mensaje", "Archivo recibido. Procesando en segundo plano...", "loteId", loteId))
-                           .type(MediaType.APPLICATION_JSON)
-                           .build();
+            return Response.status(Response.Status.ACCEPTED).entity(Map.of("mensaje", "Archivo recibido. Procesando en segundo plano...", "loteId", loteId)).type(MediaType.APPLICATION_JSON).build();
         } catch (IOException e) {
             e.printStackTrace();
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity(Map.of("error", "Error crítico al leer el archivo subido."))
-                           .type(MediaType.APPLICATION_JSON)
-                           .build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Map.of("error", "Error crítico al leer el archivo subido.")).type(MediaType.APPLICATION_JSON).build();
         }
     }
 
@@ -79,29 +71,18 @@ public class MensajeResource {
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     public Response probarSentimiento(String texto) {
-        
         ClasificadorMensajes.getInstance().waitForReady();
-        
         if (texto == null || texto.trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                           .entity(Map.of("error", "Se requiere un texto para analizar."))
-                           .build();
+            return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("error", "Se requiere un texto para analizar.")).build();
         }
         try {
             SentimentAnalysisService sentimentService = SentimentAnalysisService.getInstance();
             String sentimiento = sentimentService.getSentiment(texto);
-            
-            Map<String, String> resultado = Map.of(
-                "texto_analizado", texto,
-                "sentimiento_detectado", sentimiento
-            );
-            
+            Map<String, String> resultado = Map.of("texto_analizado", texto, "sentimiento_detectado", sentimiento);
             return Response.ok(resultado).build();
         } catch (Exception e) {
             e.printStackTrace();
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity(Map.of("error", "Error interno al procesar el sentimiento: " + e.getMessage()))
-                           .build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Map.of("error", "Error interno al procesar el sentimiento: " + e.getMessage())).build();
         }
     }
     
@@ -115,18 +96,13 @@ public class MensajeResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getMensajesPaginados(
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size,
-            @QueryParam("asesor") String asesor) {
+    public Response getMensajesPaginados(@QueryParam("page") @DefaultValue("0") int page, @QueryParam("size") @DefaultValue("10") int size, @QueryParam("asesor") String asesor) {
         try {
             PaginatedResponse<Mensaje> paginatedResponse = mensajeService.obtenerMensajesPaginado(asesor, page, size);
             return Response.ok(paginatedResponse).build();
         } catch(Exception e) {
             e.printStackTrace();
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity(Map.of("error", "Error al obtener mensajes paginados"))
-                           .build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Map.of("error", "Error al obtener mensajes paginados")).build();
         }
     }
     
@@ -140,6 +116,24 @@ public class MensajeResource {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Error al calcular estadísticas").build();
         }
     }
+
+    /**
+     * NUEVO ENDPOINT: Devuelve las estadísticas de mensajes por asesor.
+     */
+    @GET
+    @Path("/stats/por-asesor")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getStatsPorAsesor() {
+        try {
+            List<AsesorStats> stats = mensajeService.obtenerEstadisticasPorAsesor();
+            return Response.ok(stats).build();
+        } catch(Exception e) {
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity(Map.of("error", "Error al calcular estadísticas por asesor"))
+                           .build();
+        }
+    }
     
     @GET
     @Path("/export")
@@ -148,10 +142,8 @@ public class MensajeResource {
         try {
             List<Mensaje> mensajes = mensajeService.obtenerTodosLosMensajes();
             ByteArrayInputStream excelStream = excelExportService.exportarMensajesAExcel(mensajes);
-            
             String fecha = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             String header = "attachment; filename=Reporte_Mensajes_" + fecha + ".xlsx";
-
             return Response.ok(excelStream).header("Content-Disposition", header).build();
         } catch (Exception e) {
             e.printStackTrace();
@@ -162,18 +154,13 @@ public class MensajeResource {
     @GET
     @Path("/lote/{loteId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getMensajesPorLote(
-            @PathParam("loteId") String loteId,
-            @QueryParam("page") @DefaultValue("0") int page,
-            @QueryParam("size") @DefaultValue("10") int size) {
+    public Response getMensajesPorLote(@PathParam("loteId") String loteId, @QueryParam("page") @DefaultValue("0") int page, @QueryParam("size") @DefaultValue("10") int size) {
         try {
             var paginatedResponse = mensajeService.obtenerMensajesPaginadoPorLote(loteId, page, size);
             return Response.ok(paginatedResponse).build();
         } catch(Exception e) {
             e.printStackTrace();
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity(java.util.Map.of("error", "Error al obtener mensajes del lote " + loteId))
-                           .build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(java.util.Map.of("error", "Error al obtener mensajes del lote " + loteId)).build();
         }
     }
     
@@ -186,9 +173,7 @@ public class MensajeResource {
             return Response.ok(asesores).build();
         } catch(Exception e) {
             e.printStackTrace();
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                           .entity(Map.of("error", "Error al obtener la lista de asesores"))
-                           .build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Map.of("error", "Error al obtener la lista de asesores")).build();
         }
     }
 }
