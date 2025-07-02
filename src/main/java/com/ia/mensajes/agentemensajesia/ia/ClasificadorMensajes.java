@@ -1,6 +1,6 @@
 package com.ia.mensajes.agentemensajesia.ia;
 
-import com.ia.mensajes.agentemensajesia.services.SentimentAnalysisService;
+import com.ia.mensajes.agentemensajesia.services.ContextAnalysisService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
@@ -9,10 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import opennlp.tools.lemmatizer.LemmatizerME;
-import opennlp.tools.lemmatizer.LemmatizerModel;
-import opennlp.tools.postag.POSModel;
-import opennlp.tools.postag.POSTaggerME;
+import opennlp.tools.sentdetect.SentenceDetectorME;
+import opennlp.tools.sentdetect.SentenceModel;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 
@@ -20,9 +18,8 @@ public class ClasificadorMensajes {
 
     private static ClasificadorMensajes instance;
     private TokenizerME tokenizer;
-    private POSTaggerME posTagger;
-    private LemmatizerME lemmatizer;
-    private SentimentAnalysisService sentimentService;
+    private SentenceDetectorME sentenceDetector;
+    private ContextAnalysisService contextService;
     
     private volatile boolean isInitializing = false;
     private volatile boolean isReady = false;
@@ -54,9 +51,7 @@ public class ClasificadorMensajes {
         PUNTUACION_ALERTA.put("responsabilidad", 1);
     }
     
-    private ClasificadorMensajes() {
-      // Constructor vacío
-    }
+    private ClasificadorMensajes() {}
 
     public void init() {
         if (isReady || isInitializing) return;
@@ -64,17 +59,17 @@ public class ClasificadorMensajes {
             if (isReady || isInitializing) return;
             isInitializing = true;
             try {
-                System.out.println("Cargando modelos de OpenNLP (versión ligera)...");
-                try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
-                     InputStream posModelIn = getClass().getResourceAsStream("/models/es/es-pos-maxent.bin");
-                     InputStream lemmaModelIn = getClass().getResourceAsStream("/models/es/es-lemmatizer.bin")) {
+                System.out.println("Cargando modelos de OpenNLP desde el paquete de dependencias...");
+                try (InputStream tokenModelIn = getClass().getResourceAsStream("/opennlp/models/es/es-token.bin");
+                     InputStream sentModelIn = getClass().getResourceAsStream("/opennlp/models/es/es-sent.bin")) { 
+                    if (tokenModelIn == null || sentModelIn == null) throw new IOException("No se encontraron modelos de token o sentencias desde el paquete.");
                     this.tokenizer = new TokenizerME(new TokenizerModel(tokenModelIn));
-                    this.posTagger = new POSTaggerME(new POSModel(posModelIn));
-                    this.lemmatizer = new LemmatizerME(new LemmatizerModel(lemmaModelIn));
+                    this.sentenceDetector = new SentenceDetectorME(new SentenceModel(sentModelIn));
                 }
-                System.out.println("Modelos OpenNLP cargados.");
-                this.sentimentService = SentimentAnalysisService.getInstance();
-                this.sentimentService.init();
+                System.out.println("Modelos base cargados.");
+                
+                this.contextService = ContextAnalysisService.getInstance();
+                this.contextService.init();
                 isReady = true;
             } catch (Exception e) {
                 System.err.println("Error fatal durante la inicialización de los servicios de IA.");
@@ -106,50 +101,39 @@ public class ClasificadorMensajes {
     }
     
     private String normalizar(String texto) {
-        if (texto == null) {
-            return "";
-        }
-        // 1. Convertir a minúsculas
+        if (texto == null) return "";
         String textoNormalizado = texto.toLowerCase();
-        // 2. Descomponer caracteres con acentos (ej: "á" -> "a" + "'")
         textoNormalizado = Normalizer.normalize(textoNormalizado, Normalizer.Form.NFD);
-        // 3. Quitar los diacríticos (acentos)
         textoNormalizado = textoNormalizado.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
-        
-        // 4. --- CORRECCIÓN DEFINITIVA ---
-        // Eliminar todo lo que NO sea una letra del alfabeto español (incluida la 'ñ') o un espacio en blanco.
-        // Esto elimina números, URLs, horas, símbolos, etc. de forma segura.
-        textoNormalizado = textoNormalizado.replaceAll("[^a-zñ\\s]", " ");
-        
-        // 5. Reemplazar múltiples espacios por uno solo y quitar espacios al inicio/final
-        return textoNormalizado.trim().replaceAll("\\s+", " ");
+        return textoNormalizado.trim();
     }
 
     public ResultadoClasificacion clasificar(String textoMensaje) {
         if (!isReady) {
-             System.err.println("ERROR CRÍTICO: El clasificador fue llamado antes de que la inicialización estuviera completa.");
-             return new ResultadoClasificacion("Error de Sistema", "El motor de IA aún se está inicializando. Por favor, intente de nuevo en unos momentos.");
+             return new ResultadoClasificacion("Error de Sistema", "El motor de IA aún se está inicializando.");
         }
         if (textoMensaje == null || textoMensaje.trim().isEmpty()) {
             return new ResultadoClasificacion("Bueno", "N/A");
         }
         try {
-            String mensajeNormalizado = normalizar(textoMensaje);
-            String[] tokens = tokenizer.tokenize(mensajeNormalizado);
-            String[] tags = posTagger.tag(tokens);
-            String[] lemas = lemmatizer.lemmatize(tokens, tags);
-
             int puntuacionTotal = 0;
             List<String> palabrasDetectadas = new ArrayList<>();
-            for (String lema : lemas) {
-                if (PUNTUACION_ALERTA.containsKey(lema)) {
-                    puntuacionTotal += PUNTUACION_ALERTA.get(lema);
-                    palabrasDetectadas.add(lema);
+            String[] oraciones = sentenceDetector.sentDetect(textoMensaje);
+
+            for (String oracion : oraciones) {
+                String oracionNormalizada = normalizar(oracion);
+                String[] tokens = tokenizer.tokenize(oracionNormalizada);
+                for (String token : tokens) {
+                    if (PUNTUACION_ALERTA.containsKey(token)) {
+                        if (contextService.esContextoDeRiesgo(oracion, token)) {
+                            puntuacionTotal += PUNTUACION_ALERTA.get(token);
+                            palabrasDetectadas.add(token);
+                        }
+                    }
                 }
             }
-
-            String sentimiento = sentimentService.getSentiment(textoMensaje);
-            return generarObservacionProfunda(puntuacionTotal, palabrasDetectadas, sentimiento);
+            
+            return generarObservacionProfunda(puntuacionTotal, palabrasDetectadas);
 
         } catch (Exception e) {
             System.err.println("ERROR: Fallo el procesamiento de NLP para el mensaje: '" + textoMensaje + "'");
@@ -158,38 +142,19 @@ public class ClasificadorMensajes {
         }
     }
 
-    private ResultadoClasificacion generarObservacionProfunda(int puntuacion, List<String> palabrasClave, String sentimiento) {
+    private ResultadoClasificacion generarObservacionProfunda(int puntuacion, List<String> palabrasClave) {
         final int UMBRAL_PUNTOS = 5;
-        boolean esAlertaPorPuntos = puntuacion >= UMBRAL_PUNTOS;
-        
-        boolean esAlertaPorTono = "Negative".equalsIgnoreCase(sentimiento);
-
-        if (!esAlertaPorPuntos && !esAlertaPorTono) {
+        if (puntuacion < UMBRAL_PUNTOS) {
             return new ResultadoClasificacion("Bueno", "N/A");
         }
-
+        
         StringBuilder sb = new StringBuilder();
-
-        if (esAlertaPorPuntos && esAlertaPorTono) {
-            sb.append("Diagnóstico: Alto Riesgo. Se detectaron palabras clave críticas y un tono emocional negativo simulado.\n");
-        } else if (esAlertaPorPuntos) {
-            sb.append("Diagnóstico: Riesgo por Contenido. Se detectaron palabras clave específicas de cobranza.\n");
-        } else {
-            sb.append("Diagnóstico: Riesgo por Tono. El mensaje tiene una carga emocional negativa simulada.\n");
-        }
-
+        sb.append("Diagnóstico: Riesgo por Contenido. Se detectaron palabras clave en un contexto de riesgo.\n");
         sb.append("\n--- Detalles del Análisis ---\n");
-        if (esAlertaPorTono) {
-            sb.append("• Análisis de Tono (Simulado): El sentimiento fue clasificado como '").append(sentimiento).append("'.\n");
-        }
-        if (esAlertaPorPuntos) {
-            String palabras = palabrasClave.stream().distinct().collect(Collectors.joining(", "));
-            sb.append("• Palabras de Riesgo: [").append(palabras).append("]. Puntuación total: ").append(puntuacion).append(" pts.\n");
-        }
-
+        String palabras = palabrasClave.stream().distinct().collect(Collectors.joining(", "));
+        sb.append("• Palabras de Riesgo: [").append(palabras).append("]. Puntuación total: ").append(puntuacion).append(" pts.\n");
         sb.append("\n--- Sugerencia ---\n");
         sb.append(SUGERENCIA_REFORMULACION);
-
         return new ResultadoClasificacion("Alerta", sb.toString());
     }
 }
