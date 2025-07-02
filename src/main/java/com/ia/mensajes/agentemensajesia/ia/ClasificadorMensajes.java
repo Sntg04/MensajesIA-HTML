@@ -131,10 +131,10 @@ public class ClasificadorMensajes {
                 }
             }
             
-            // Análisis Ortográfico
-            List<String> erroresOrtograficos = spellCheckService.findMisspelledWords(textoMensaje);
+            // Análisis Ortográfico con Sugerencias
+            Map<String, String> erroresConSugerencias = spellCheckService.findMisspelledWordsWithSuggestions(textoMensaje);
             
-            return generarObservacionProfunda(puntuacionTotal, palabrasDetectadas, erroresOrtograficos);
+            return generarObservacionProfunda(puntuacionTotal, palabrasDetectadas, erroresConSugerencias);
 
         } catch (Exception e) {
             System.err.println("ERROR: Fallo el procesamiento de NLP para el mensaje: '" + textoMensaje + "'");
@@ -143,10 +143,10 @@ public class ClasificadorMensajes {
         }
     }
 
-    private ResultadoClasificacion generarObservacionProfunda(int puntuacion, List<String> palabrasClave, List<String> erroresOrtograficos) {
+    private ResultadoClasificacion generarObservacionProfunda(int puntuacion, List<String> palabrasClave, Map<String, String> erroresConSugerencias) {
         final int UMBRAL_PUNTOS = 5;
         boolean esAlertaPorPuntos = puntuacion >= UMBRAL_PUNTOS;
-        boolean hayErroresOrtograficos = !erroresOrtograficos.isEmpty();
+        boolean hayErroresOrtograficos = !erroresConSugerencias.isEmpty();
 
         if (!esAlertaPorPuntos && !hayErroresOrtograficos) {
             return new ResultadoClasificacion("Bueno", "N/A");
@@ -169,10 +169,15 @@ public class ClasificadorMensajes {
             }
             sb.append("Diagnóstico: Error de Ortografía.\n");
             sb.append("\n--- Detalles del Análisis ---\n");
-            String errores = erroresOrtograficos.stream().distinct().collect(Collectors.joining(", "));
-            sb.append("• Palabras con posible error: [").append(errores).append("].\n");
+            
+            // --- LÓGICA MEJORADA CON SUGERENCIAS ---
+            String detallesErrores = erroresConSugerencias.entrySet().stream()
+                .map(entry -> "'" + entry.getKey() + "' (sugerencia: '" + entry.getValue() + "')")
+                .collect(Collectors.joining(", "));
+            sb.append("• Se encontraron los siguientes errores: ").append(detallesErrores).append(".\n");
+            
             sb.append("\n--- Sugerencia ---\n");
-            sb.append("Revisar la escritura de las palabras señaladas para asegurar la calidad y claridad del mensaje.");
+            sb.append("Corrija las palabras señaladas para mejorar la claridad del mensaje.");
         }
         
         return new ResultadoClasificacion("Alerta", sb.toString());
