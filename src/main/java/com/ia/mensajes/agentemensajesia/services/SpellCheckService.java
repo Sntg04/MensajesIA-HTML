@@ -3,7 +3,6 @@ package com.ia.mensajes.agentemensajesia.services;
 import java.io.IOException;
 import java.text.Normalizer;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,16 +17,6 @@ public class SpellCheckService {
     private static SpellCheckService instance;
     private JLanguageTool langTool;
 
-    // --- DICCIONARIO DE CORRECCIONES PERSONALIZADAS ---
-    private static final Map<String, String> CUSTOM_CORRECTIONS = new HashMap<>();
-    static {
-        CUSTOM_CORRECTIONS.put("info", "información");
-        CUSTOM_CORRECTIONS.put("wst", "whatsapp");
-        CUSTOM_CORRECTIONS.put("whats", "whatsapp");
-        CUSTOM_CORRECTIONS.put("cel", "celular");
-        // Puedes añadir más abreviaturas y sus correcciones aquí
-    }
-
     private SpellCheckService() {}
 
     public void init() {
@@ -36,8 +25,11 @@ public class SpellCheckService {
                 System.out.println("Iniciando SpellCheckService con LanguageTool y Diccionario Personalizado...");
                 this.langTool = new JLanguageTool(new Spanish());
 
-                // Añadimos nuestro vocabulario de negocio que SIEMPRE será correcto.
-                List<String> palabrasDeNegocio = Arrays.asList("preaprobado", "credito", "whatsapp");
+                // --- CORRECCIÓN DEFINITIVA ---
+                // Se añaden "info" y "wst" a la lista de palabras que la IA debe ignorar.
+                List<String> palabrasDeNegocio = Arrays.asList("preaprobado", "credito", "whatsapp", "info", "wst");
+                
+                // Se busca la regla de ortografía y se le añaden nuestras palabras a la lista de excepciones.
                 for (Rule rule : langTool.getAllRules()) {
                     if (rule instanceof SpellingCheckRule) {
                         ((SpellingCheckRule) rule).addIgnoreTokens(palabrasDeNegocio);
@@ -68,7 +60,7 @@ public class SpellCheckService {
 
     /**
      * Revisa un texto y devuelve un mapa de palabras erróneas con sus sugerencias,
-     * priorizando las correcciones personalizadas.
+     * ignorando errores de tildes y fragmentos con números.
      */
     public Map<String, String> findMisspelledWordsWithSuggestions(String text) {
         try {
@@ -76,35 +68,20 @@ public class SpellCheckService {
             
             return matches.stream()
                     .filter(match -> match.getRule().isDictionaryBasedSpellingRule())
+                    .filter(match -> !match.getSuggestedReplacements().isEmpty())
                     .filter(match -> {
                         String originalWord = text.substring(match.getFromPos(), match.getToPos());
                         // Ignorar cualquier "palabra" que contenga números o sea muy corta.
                         if (originalWord.matches(".*\\d.*") || originalWord.length() <= 2) {
                             return false;
                         }
-                        // Si la palabra está en nuestro diccionario personalizado de correcciones, SÍ la procesamos.
-                        if (CUSTOM_CORRECTIONS.containsKey(originalWord.toLowerCase())) {
-                            return true;
-                        }
-                        // Si no, verificamos que no sea solo un error de tilde.
-                        if (match.getSuggestedReplacements().isEmpty()) {
-                           return true; // Es un error real sin sugerencia
-                        }
                         String suggestedWord = match.getSuggestedReplacements().get(0);
+                        // Ignorar si la sugerencia es solo la misma palabra con tilde.
                         return !normalizeText(originalWord).equals(normalizeText(suggestedWord));
                     })
                     .collect(Collectors.toMap(
                         match -> text.substring(match.getFromPos(), match.getToPos()),
-                        match -> {
-                            // --- LÓGICA DE SUGERENCIA INTELIGENTE ---
-                            String originalWord = text.substring(match.getFromPos(), match.getToPos()).toLowerCase();
-                            // Si tenemos una corrección personalizada, la usamos.
-                            if (CUSTOM_CORRECTIONS.containsKey(originalWord)) {
-                                return CUSTOM_CORRECTIONS.get(originalWord);
-                            }
-                            // Si no, usamos la sugerencia de LanguageTool.
-                            return match.getSuggestedReplacements().get(0);
-                        },
+                        match -> match.getSuggestedReplacements().get(0),
                         (existing, replacement) -> existing 
                     ));
         } catch (IOException e) {
