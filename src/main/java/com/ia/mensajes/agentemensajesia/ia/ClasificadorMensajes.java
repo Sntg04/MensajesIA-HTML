@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import opennlp.tools.sentdetect.SentenceDetectorME;
+import opennlp.tools.sentdetect.SentenceModel;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 
@@ -17,6 +19,7 @@ public class ClasificadorMensajes {
 
     private static ClasificadorMensajes instance;
     private TokenizerME tokenizer;
+    private SentenceDetectorME sentenceDetector;
     private ContextAnalysisService contextService;
     private SpellCheckService spellCheckService;
 
@@ -58,12 +61,14 @@ public class ClasificadorMensajes {
             if (isReady || isInitializing) return;
             isInitializing = true;
             try {
-                System.out.println("Cargando modelos de OpenNLP...");
-                try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin")) { 
-                    if (tokenModelIn == null) throw new IOException("No se encontró el modelo de tokenizer (es-token.bin).");
+                System.out.println("Cargando modelos de OpenNLP (versión de contexto)...");
+                try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin");
+                     InputStream sentModelIn = getClass().getResourceAsStream("/models/es/es-sent.bin")) { 
+                    if (tokenModelIn == null || sentModelIn == null) throw new IOException("No se encontraron modelos de token o sentencias (es-sent.bin).");
                     this.tokenizer = new TokenizerME(new TokenizerModel(tokenModelIn));
+                    this.sentenceDetector = new SentenceDetectorME(new SentenceModel(sentModelIn));
                 }
-                System.out.println("Modelo de Tokenizer cargado.");
+                System.out.println("Modelos base cargados.");
                 
                 this.contextService = ContextAnalysisService.getInstance();
                 this.contextService.init();
@@ -103,10 +108,17 @@ public class ClasificadorMensajes {
     
     private String normalizar(String texto) {
         if (texto == null) return "";
+        // 1. Convertir a minúsculas
         String textoNormalizado = texto.toLowerCase();
-        textoNormalizado = Normalizer.normalize(textoNormalizado, Normalizer.Form.NFD);
-        textoNormalizado = textoNormalizado.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
-        return textoNormalizado.trim();
+        // 2. Descomponer caracteres con acentos (ej: "crédito" -> "credito")
+        textoNormalizado = Normalizer.normalize(textoNormalizado, Normalizer.Form.NFD)
+                                    .replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
+        // 3. --- CORRECCIÓN DEFINITIVA ---
+        // Elimina CUALQUIER COSA que no sea una letra del alfabeto español o un espacio.
+        // Esto previene errores con puntuación, números, URLs, etc.
+        textoNormalizado = textoNormalizado.replaceAll("[^a-zñ\\s]", " ");
+        
+        return textoNormalizado.trim().replaceAll("\\s+", " ");
     }
 
     public ResultadoClasificacion clasificar(String textoMensaje) {
@@ -117,21 +129,25 @@ public class ClasificadorMensajes {
             return new ResultadoClasificacion("Bueno", "N/A");
         }
         try {
-            // Análisis de Riesgo
+            // --- Análisis de Riesgo ---
             int puntuacionTotal = 0;
             List<String> palabrasDetectadas = new ArrayList<>();
-            String mensajeNormalizado = normalizar(textoMensaje);
-            String[] tokens = tokenizer.tokenize(mensajeNormalizado);
-            for (String token : tokens) {
-                if (PUNTUACION_ALERTA.containsKey(token)) {
-                    if (contextService.esContextoDeRiesgo(textoMensaje, token)) {
-                        puntuacionTotal += PUNTUACION_ALERTA.get(token);
-                        palabrasDetectadas.add(token);
+            String[] oraciones = sentenceDetector.sentDetect(textoMensaje);
+
+            for (String oracion : oraciones) {
+                String oracionNormalizada = normalizar(oracion); // Se normaliza cada oración
+                String[] tokens = tokenizer.tokenize(oracionNormalizada);
+                for (String token : tokens) {
+                    if (PUNTUACION_ALERTA.containsKey(token)) {
+                        if (contextService.esContextoDeRiesgo(oracion, token)) {
+                            puntuacionTotal += PUNTUACION_ALERTA.get(token);
+                            palabrasDetectadas.add(token);
+                        }
                     }
                 }
             }
             
-            // Análisis Ortográfico con Sugerencias
+            // --- Análisis Ortográfico ---
             Map<String, String> erroresConSugerencias = spellCheckService.findMisspelledWordsWithSuggestions(textoMensaje);
             
             return generarObservacionProfunda(puntuacionTotal, palabrasDetectadas, erroresConSugerencias);
@@ -170,7 +186,6 @@ public class ClasificadorMensajes {
             sb.append("Diagnóstico: Error de Ortografía.\n");
             sb.append("\n--- Detalles del Análisis ---\n");
             
-            // --- LÓGICA MEJORADA CON SUGERENCIAS ---
             String detallesErrores = erroresConSugerencias.entrySet().stream()
                 .map(entry -> "'" + entry.getKey() + "' (sugerencia: '" + entry.getValue() + "')")
                 .collect(Collectors.joining(", "));
