@@ -58,7 +58,7 @@ public class ClasificadorMensajes {
             if (isReady || isInitializing) return;
             isInitializing = true;
             try {
-                System.out.println("Cargando modelos de OpenNLP (versión de contexto final)...");
+                System.out.println("Cargando modelos de OpenNLP...");
                 try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin")) { 
                     if (tokenModelIn == null) throw new IOException("No se encontró el modelo de tokenizer (es-token.bin).");
                     this.tokenizer = new TokenizerME(new TokenizerModel(tokenModelIn));
@@ -143,9 +143,6 @@ public class ClasificadorMensajes {
         }
     }
 
-    /**
-     * MÉTODO ACTUALIZADO: Genera una observación específica para cada tipo de error.
-     */
     private ResultadoClasificacion generarObservacionProfunda(int puntuacion, List<String> palabrasClave, List<String> erroresOrtograficos) {
         final int UMBRAL_PUNTOS = 5;
         boolean esAlertaPorPuntos = puntuacion >= UMBRAL_PUNTOS;
@@ -156,26 +153,20 @@ public class ClasificadorMensajes {
         }
         
         StringBuilder sb = new StringBuilder();
-
+        
         if (esAlertaPorPuntos) {
-            // Diagnóstico principal: Uso Indebido de Palabras
             sb.append("Diagnóstico: Uso Indebido de Palabras.\n");
             sb.append("\n--- Detalles del Análisis ---\n");
             String palabras = palabrasClave.stream().distinct().collect(Collectors.joining(", "));
             sb.append("• Palabras de Riesgo: [").append(palabras).append("]. Puntuación total: ").append(puntuacion).append(" pts.\n");
             sb.append("\n--- Sugerencia ---\n");
-            sb.append(SUGERENCIA_REFORMULACION);
-            
-            // Si también hay errores de ortografía, se añaden como un diagnóstico secundario.
-            if (hayErroresOrtograficos) {
-                sb.append("\n\n----------------------------------\n\n");
-                sb.append("Diagnóstico Adicional: Error de Ortografía.\n");
-                String errores = erroresOrtograficos.stream().distinct().collect(Collectors.joining(", "));
-                sb.append("• Palabras con posible error: [").append(errores).append("].\n");
+            sb.append(SUGERENCIA_REFORMULACION).append("\n");
+        }
+        
+        if (hayErroresOrtograficos) {
+            if (sb.length() > 0) {
+                sb.append("\n----------------------------------\n\n");
             }
-
-        } else {
-            // Si no hay palabras de riesgo, el único problema posible es la ortografía.
             sb.append("Diagnóstico: Error de Ortografía.\n");
             sb.append("\n--- Detalles del Análisis ---\n");
             String errores = erroresOrtograficos.stream().distinct().collect(Collectors.joining(", "));
@@ -184,7 +175,6 @@ public class ClasificadorMensajes {
             sb.append("Revisar la escritura de las palabras señaladas para asegurar la calidad y claridad del mensaje.");
         }
         
-        // Cualquier problema genera una "Alerta". La observación detalla el tipo.
         return new ResultadoClasificacion("Alerta", sb.toString());
     }
 }
