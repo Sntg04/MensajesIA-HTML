@@ -31,10 +31,11 @@ public class SpellCheckService {
                 List<String> palabrasDeNegocio = Arrays.asList(
                     // Palabras originales
                     "preaprobado", "credito", "whatsapp", "info", "wst",
-                    // Nueva lista de palabras (ya en minúsculas)
                     "frscompania", "inf", "t&c", "sobrecostos", "dto", "dcto", "sured",
                     "billetecla", "dinerbacano", "morlong", "platanow", "platax",
-                    "transfelicia", "htt", "morloan", "tyc", "fintech", "dctos"
+                    "transfelicia", "htt", "morloan", "tyc", "fintech", "dctos",
+                    // --- NUEVAS PALABRAS AÑADIDAS ---
+                    "whapp", "efecty", "pse"
                 );
                 
                 // Se busca la regla de ortografía y se le añaden nuestras palabras a la lista de excepciones.
