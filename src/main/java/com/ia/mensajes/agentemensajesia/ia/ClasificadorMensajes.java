@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+// Se elimina la necesidad del SentenceDetector. Solo se usa el Tokenizer.
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 
@@ -113,6 +114,7 @@ public class ClasificadorMensajes {
         try {
             int puntuacionTotal = 0;
             List<String> palabrasDetectadas = new ArrayList<>();
+            // Ya no separamos por oraciones, analizamos el texto completo.
             String mensajeNormalizado = normalizar(textoMensaje);
             String[] tokens = tokenizer.tokenize(mensajeNormalizado);
 

@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-// Ya no se importa el Parser, que no se necesita.
+// Se elimina la importación del Parser, que no se necesita.
 import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
@@ -25,7 +25,7 @@ public class ContextAnalysisService {
     public void init() {
         if (this.tokenizer == null) {
             try {
-                System.out.println("Iniciando ContextAnalysisService (Versión Final Ligera)...");
+                System.out.println("Iniciando ContextAnalysisService (Versión Definitiva y Ligera)...");
                 // Ahora solo carga el modelo de Tokenizer, que ya tienes y funciona.
                 try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin")) {
                     if (tokenModelIn == null) throw new IOException("No se encontró el modelo de tokenizer: es-token.bin");
