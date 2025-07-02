@@ -1,7 +1,7 @@
 package com.ia.mensajes.agentemensajesia.ia;
 
 import com.ia.mensajes.agentemensajesia.services.ContextAnalysisService;
-import com.ia.mensajes.agentemensajesia.services.SpellCheckService; // <-- NUEVA IMPORTACIÓN
+import com.ia.mensajes.agentemensajesia.services.SpellCheckService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
@@ -18,7 +18,7 @@ public class ClasificadorMensajes {
     private static ClasificadorMensajes instance;
     private TokenizerME tokenizer;
     private ContextAnalysisService contextService;
-    private SpellCheckService spellCheckService; // <-- NUEVO SERVICIO
+    private SpellCheckService spellCheckService;
 
     private volatile boolean isInitializing = false;
     private volatile boolean isReady = false;
@@ -65,11 +65,10 @@ public class ClasificadorMensajes {
                 }
                 System.out.println("Modelo de Tokenizer cargado.");
                 
-                // Inicializamos los dos servicios de IA
                 this.contextService = ContextAnalysisService.getInstance();
                 this.contextService.init();
                 
-                this.spellCheckService = SpellCheckService.getInstance(); // <-- INICIALIZAR NUEVO SERVICIO
+                this.spellCheckService = SpellCheckService.getInstance();
                 this.spellCheckService.init();
 
                 isReady = true;
@@ -118,12 +117,11 @@ public class ClasificadorMensajes {
             return new ResultadoClasificacion("Bueno", "N/A");
         }
         try {
-            // ---- Análisis de Riesgo por Palabras Clave y Contexto ----
+            // Análisis de Riesgo
             int puntuacionTotal = 0;
             List<String> palabrasDetectadas = new ArrayList<>();
             String mensajeNormalizado = normalizar(textoMensaje);
             String[] tokens = tokenizer.tokenize(mensajeNormalizado);
-
             for (String token : tokens) {
                 if (PUNTUACION_ALERTA.containsKey(token)) {
                     if (contextService.esContextoDeRiesgo(textoMensaje, token)) {
@@ -133,7 +131,7 @@ public class ClasificadorMensajes {
                 }
             }
             
-            // ---- NUEVO: Análisis Ortográfico ----
+            // Análisis Ortográfico
             List<String> erroresOrtograficos = spellCheckService.findMisspelledWords(textoMensaje);
             
             return generarObservacionProfunda(puntuacionTotal, palabrasDetectadas, erroresOrtograficos);
@@ -150,7 +148,6 @@ public class ClasificadorMensajes {
         boolean esAlertaPorPuntos = puntuacion >= UMBRAL_PUNTOS;
         boolean hayErroresOrtograficos = !erroresOrtograficos.isEmpty();
 
-        // Un mensaje ahora es "Bueno" solo si NO tiene alertas de riesgo Y NO tiene errores ortográficos.
         if (!esAlertaPorPuntos && !hayErroresOrtograficos) {
             return new ResultadoClasificacion("Bueno", "N/A");
         }
@@ -178,7 +175,6 @@ public class ClasificadorMensajes {
             sb.append("Revisar la escritura de las palabras señaladas para asegurar la calidad y claridad del mensaje.");
         }
         
-        // Si hay errores de cualquier tipo, se considera "Alerta".
         return new ResultadoClasificacion("Alerta", sb.toString());
     }
 }

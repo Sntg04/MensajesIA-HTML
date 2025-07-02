@@ -20,7 +20,7 @@ public class SpellCheckService {
 
     public void init() {
         if (dictionary.isEmpty()) {
-            System.out.println("Iniciando SpellCheckService (cargando diccionario)...");
+            System.out.println("Iniciando SpellCheckService (cargando diccionario local)...");
             try (InputStream is = getClass().getResourceAsStream("/es_dictionary.txt")) {
                 if (is == null) {
                     throw new IOException("No se pudo encontrar el archivo de diccionario: es_dictionary.txt");
@@ -46,8 +46,12 @@ public class SpellCheckService {
         if (text == null || text.trim().isEmpty()) {
             return List.of();
         }
-        // Limpiamos el texto para quedarnos solo con las palabras
-        String[] words = text.toLowerCase().replaceAll("[^a-zñ\\s]", "").split("\\s+");
+        // Limpiamos el texto para quedarnos solo con las palabras, quitando acentos para la comparación.
+        String textoNormalizado = java.text.Normalizer.normalize(text.toLowerCase(), java.text.Normalizer.Form.NFD)
+                                      .replaceAll("[\\p{InCombiningDiacriticalMarks}]", "")
+                                      .replaceAll("[^a-zñ\\s]", "");
+        
+        String[] words = textoNormalizado.split("\\s+");
 
         return Stream.of(words)
                 .filter(word -> !word.isEmpty() && !dictionary.contains(word))
