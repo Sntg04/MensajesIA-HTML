@@ -9,7 +9,7 @@ public class SentimentAnalysisService {
     private static SentimentAnalysisService instance;
 
     // --- Léxico de Sentimiento en Español (positivo > 0, negativo < 0) ---
-    // Este diccionario es ligero y rápido, ideal para desarrollo.
+    // Este diccionario es ligero y rápido, ideal para desarrollo y entornos con poca memoria.
     private static final Map<String, Integer> LEXICON = new HashMap<>();
     static {
         // Palabras Positivas y su "peso"
