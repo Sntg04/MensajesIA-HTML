@@ -1,41 +1,78 @@
 package com.ia.mensajes.agentemensajesia.services;
 
-import edu.stanford.nlp.ling.CoreAnnotations;
-import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
-import edu.stanford.nlp.util.CoreMap;
-import java.util.Properties;
+import java.text.Normalizer;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SentimentAnalysisService {
 
     private static SentimentAnalysisService instance;
-    private StanfordCoreNLP pipeline; // No es 'final' para permitir la inicialización controlada
+
+    // --- Léxico de Sentimiento en Español (positivo > 0, negativo < 0) ---
+    // Este diccionario es ligero y rápido, ideal para desarrollo.
+    private static final Map<String, Integer> LEXICON = new HashMap<>();
+    static {
+        // Palabras Positivas y su "peso"
+        LEXICON.put("acuerdo", 2);
+        LEXICON.put("ayuda", 2);
+        LEXICON.put("beneficio", 3);
+        LEXICON.put("bien", 1);
+        LEXICON.put("bueno", 2);
+        LEXICON.put("calidad", 2);
+        LEXICON.put("confianza", 2);
+        LEXICON.put("correcto", 1);
+        LEXICON.put("descuento", 3);
+        LEXICON.put("disponible", 1);
+        LEXICON.put("excelente", 4);
+        LEXICON.put("exito", 4);
+        LEXICON.put("facil", 1);
+        LEXICON.put("felicidades", 4);
+        LEXICON.put("gracias", 3);
+        LEXICON.put("genial", 3);
+        LEXICON.put("gusta", 2);
+        LEXICON.put("oportunidad", 2);
+        LEXICON.put("perfecto", 4);
+        LEXICON.put("posibilidad", 1);
+        LEXICON.put("premio", 3);
+        LEXICON.put("resolver", 3);
+        LEXICON.put("solucion", 3);
+
+        // Palabras Negativas y su "peso"
+        LEXICON.put("abuso", -3);
+        LEXICON.put("amenaza", -4);
+        LEXICON.put("contra", -2);
+        LEXICON.put("cuidado", -2);
+        LEXICON.put("culpa", -3);
+        LEXICON.put("dificil", -1);
+        LEXICON.put("error", -2);
+        LEXICON.put("estafa", -5);
+        LEXICON.put("evitar", -1);
+        LEXICON.put("fallo", -3);
+        LEXICON.put("fraude", -5);
+        LEXICON.put("imposible", -2);
+        LEXICON.put("incumplir", -3);
+        LEXICON.put("jamás", -2);
+        LEXICON.put("malo", -2);
+        LEXICON.put("molesto", -2);
+        LEXICON.put("nunca", -2);
+        LEXICON.put("obligacion", -3);
+        LEXICON.put("odio", -4);
+        LEXICON.put("peligro", -3);
+        LEXICON.put("pero", -1);
+        LEXICON.put("pesimo", -4);
+        LEXICON.put("problema", -2);
+        LEXICON.put("queja", -2);
+        LEXICON.put("riesgo", -2);
+        LEXICON.put("terrible", -4);
+    }
 
     private SentimentAnalysisService() {
-        // El constructor se deja vacío para un control manual de la inicialización.
+        // El constructor está vacío. No hay modelos pesados que cargar.
     }
     
-    /**
-     * Realiza la carga pesada de los modelos reales de Stanford NLP.
-     * Este método consumirá una cantidad considerable de memoria RAM.
-     */
+    // El método init() ahora solo imprime un mensaje informativo.
     public void init() {
-        if (this.pipeline == null) {
-            System.out.println("Iniciando SentimentAnalysisService en MODO PRODUCCIÓN (cargando modelos reales)...");
-            Properties props = new Properties();
-            
-            // Especifica explícitamente la ruta de cada modelo requerido para español.
-            // Esto evita que la biblioteca busque los modelos por defecto en inglés.
-            props.setProperty("annotators", "tokenize, ssplit, pos, lemma, parse, sentiment");
-            props.setProperty("tokenize.language", "es");
-            props.setProperty("pos.model", "edu/stanford/nlp/models/pos-tagger/spanish-ud.tagger");
-            props.setProperty("parse.model", "edu/stanford/nlp/models/lexparser/spanishPCFG.ser.gz");
-            props.setProperty("sentiment.model", "edu/stanford/nlp/models/sentiment/sentiment.spanish.unlabeled.uncased.simplification.dev.ser.gz");
-            
-            this.pipeline = new StanfordCoreNLP(props);
-            System.out.println("SentimentAnalysisService (Modo Producción) iniciado correctamente.");
-        }
+        System.out.println("SentimentAnalysisService iniciado en MODO LIGERO (basado en léxico).");
     }
 
     public static synchronized SentimentAnalysisService getInstance() {
@@ -46,28 +83,38 @@ public class SentimentAnalysisService {
     }
 
     /**
-     * Analiza el sentimiento de un texto usando los modelos reales de Stanford.
+     * Analiza el sentimiento de un texto sumando las puntuaciones de las palabras encontradas en el léxico.
      * @param text El texto a analizar.
-     * @return Una cadena que representa el sentimiento: "Very negative", "Negative", "Neutral", "Positive", "Very positive".
+     * @return Una cadena que representa el sentimiento: "Positive", "Negative" o "Neutral".
      */
     public String getSentiment(String text) {
-        if (this.pipeline == null) {
-            System.err.println("ERROR CRÍTICO: El servicio de sentimiento fue llamado antes de ser inicializado.");
-            return "Neutral";
-        }
         if (text == null || text.trim().isEmpty()) {
             return "Neutral";
         }
 
-        Annotation annotation = new Annotation(text);
-        pipeline.annotate(annotation);
+        String[] words = normalizar(text).split("\\s+");
+        int score = 0;
 
-        // El sentimiento se analiza por oración. Usaremos el de la primera oración como el sentimiento general.
-        for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
-            // Retorna la etiqueta de sentimiento (en inglés, ya que es el output del modelo)
-            return sentence.get(SentimentCoreAnnotations.SentimentClass.class);
+        for (String word : words) {
+            score += LEXICON.getOrDefault(word, 0);
         }
-        
-        return "Neutral"; // Si no se encuentra ninguna oración.
+
+        if (score > 1) {
+            return "Positive";
+        }
+        if (score < -1) {
+            return "Negative";
+        }
+        return "Neutral";
+    }
+    
+    // Método de ayuda para limpiar el texto, consistente con el clasificador principal.
+    private String normalizar(String texto) {
+        if (texto == null) return "";
+        texto = texto.toLowerCase();
+        texto = Normalizer.normalize(texto, Normalizer.Form.NFD);
+        texto = texto.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
+        texto = texto.replaceAll("[^a-zñ\\s]", " "); 
+        return texto.trim().replaceAll("\\s+", " ");
     }
 }
