@@ -1,10 +1,6 @@
 package com.ia.mensajes.agentemensajesia.services;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.List;
 import java.util.Map;
@@ -23,31 +19,20 @@ public class SpellCheckService {
     public void init() {
         if (langTool == null) {
             try {
-                System.out.println("Iniciando SpellCheckService con LanguageTool y Diccionario Personalizado...");
+                System.out.println("Iniciando SpellCheckService con LanguageTool (Versión Corregida)...");
+                // 1. Cargar la herramienta para el idioma español.
                 this.langTool = new JLanguageTool(new Spanish());
-
-                // Cargar palabras del diccionario personalizado
-                try (InputStream is = getClass().getResourceAsStream("/custom_dictionary.txt")) {
-                    if (is != null) {
-                        List<String> userWords = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))
-                                .lines()
-                                .collect(Collectors.toList());
-                        langTool.getUserWords().addAll(userWords);
-                        System.out.println("Diccionario personalizado cargado con " + userWords.size() + " palabras.");
-                    } else {
-                        System.out.println("Advertencia: No se encontró el diccionario personalizado (custom_dictionary.txt).");
-                    }
-                }
-
-                // OPTIMIZACIÓN DE VELOCIDAD: Desactivamos todas las reglas excepto las de ortografía.
-                langTool.getAllRules().forEach(rule -> {
+                
+                // 2. OPTIMIZACIÓN DE VELOCIDAD: Desactivamos todas las reglas que no sean de ortografía.
+                // Esto hace que la revisión sea mucho más rápida y se centre solo en lo que nos interesa.
+                this.langTool.getAllRules().forEach(rule -> {
                     if (!rule.isDictionaryBasedSpellingRule()) {
                         langTool.disableRule(rule.getId());
                     }
                 });
                 
                 System.out.println("SpellCheckService (LanguageTool) iniciado correctamente.");
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new RuntimeException("Fallo al inicializar LanguageTool", e);
             }
         }
@@ -73,29 +58,24 @@ public class SpellCheckService {
                     .filter(match -> match.getRule().isDictionaryBasedSpellingRule())
                     
                     // 2. Extraer la palabra original que fue marcada como error.
-                    .map(match -> text.substring(match.getFromPos(), match.getToPos()))
-                    
-                    // 3. ¡SOLUCIÓN! Ignorar cualquier "palabra" que contenga un número.
-                    .filter(word -> !word.matches(".*\\d.*"))
-                    
-                    // 4. Volvemos a revisar con la herramienta para obtener las sugerencias de las palabras filtradas.
-                    .flatMap(word -> {
-                        try {
-                            return langTool.check(word).stream();
-                        } catch (IOException e) {
+                    .map(match -> {
+                        String originalWord = text.substring(match.getFromPos(), match.getToPos());
+                        // Si la "palabra" contiene números o es muy corta, la ignoramos.
+                        if (originalWord.matches(".*\\d.*") || originalWord.length() <= 2) {
                             return null;
                         }
+                        return match;
                     })
                     .filter(match -> match != null && !match.getSuggestedReplacements().isEmpty())
                     
-                    // 5. Ignorar si la sugerencia es solo la misma palabra con tilde.
+                    // 3. Ignorar si la sugerencia es solo la misma palabra con tilde.
                     .filter(match -> {
                         String originalWord = text.substring(match.getFromPos(), match.getToPos());
                         String suggestedWord = match.getSuggestedReplacements().get(0);
                         return !normalizeText(originalWord).equals(normalizeText(suggestedWord));
                     })
                     
-                    // 6. Recolectar en un mapa, evitando duplicados.
+                    // 4. Recolectar en un mapa, evitando duplicados.
                     .collect(Collectors.toMap(
                         match -> text.substring(match.getFromPos(), match.getToPos()),
                         match -> match.getSuggestedReplacements().get(0),
@@ -107,6 +87,9 @@ public class SpellCheckService {
         }
     }
 
+    /**
+     * Método de ayuda para normalizar texto: lo convierte a minúsculas y le quita las tildes.
+     */
     private String normalizeText(String texto) {
         if (texto == null) return "";
         String textoNormalizado = Normalizer.normalize(texto.toLowerCase(), Normalizer.Form.NFD);
