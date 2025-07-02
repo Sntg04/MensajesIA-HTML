@@ -9,8 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import opennlp.tools.sentdetect.SentenceDetectorME;
-import opennlp.tools.sentdetect.SentenceModel;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 
@@ -18,7 +16,6 @@ public class ClasificadorMensajes {
 
     private static ClasificadorMensajes instance;
     private TokenizerME tokenizer;
-    private SentenceDetectorME sentenceDetector;
     private ContextAnalysisService contextService;
     
     private volatile boolean isInitializing = false;
@@ -59,14 +56,12 @@ public class ClasificadorMensajes {
             if (isReady || isInitializing) return;
             isInitializing = true;
             try {
-                System.out.println("Cargando modelos de OpenNLP desde el paquete de dependencias...");
-                try (InputStream tokenModelIn = getClass().getResourceAsStream("/opennlp/models/es/es-token.bin");
-                     InputStream sentModelIn = getClass().getResourceAsStream("/opennlp/models/es/es-sent.bin")) { 
-                    if (tokenModelIn == null || sentModelIn == null) throw new IOException("No se encontraron modelos de token o sentencias desde el paquete.");
+                System.out.println("Cargando modelos de OpenNLP (versión de contexto final)...");
+                try (InputStream tokenModelIn = getClass().getResourceAsStream("/models/es/es-token.bin")) { 
+                    if (tokenModelIn == null) throw new IOException("No se encontró el modelo de tokenizer (es-token.bin).");
                     this.tokenizer = new TokenizerME(new TokenizerModel(tokenModelIn));
-                    this.sentenceDetector = new SentenceDetectorME(new SentenceModel(sentModelIn));
                 }
-                System.out.println("Modelos base cargados.");
+                System.out.println("Modelo de Tokenizer cargado.");
                 
                 this.contextService = ContextAnalysisService.getInstance();
                 this.contextService.init();
@@ -118,17 +113,15 @@ public class ClasificadorMensajes {
         try {
             int puntuacionTotal = 0;
             List<String> palabrasDetectadas = new ArrayList<>();
-            String[] oraciones = sentenceDetector.sentDetect(textoMensaje);
+            String mensajeNormalizado = normalizar(textoMensaje);
+            String[] tokens = tokenizer.tokenize(mensajeNormalizado);
 
-            for (String oracion : oraciones) {
-                String oracionNormalizada = normalizar(oracion);
-                String[] tokens = tokenizer.tokenize(oracionNormalizada);
-                for (String token : tokens) {
-                    if (PUNTUACION_ALERTA.containsKey(token)) {
-                        if (contextService.esContextoDeRiesgo(oracion, token)) {
-                            puntuacionTotal += PUNTUACION_ALERTA.get(token);
-                            palabrasDetectadas.add(token);
-                        }
+            for (String token : tokens) {
+                if (PUNTUACION_ALERTA.containsKey(token)) {
+                    // Llama al servicio de contexto para verificar si es una amenaza real.
+                    if (contextService.esContextoDeRiesgo(textoMensaje, token)) {
+                        puntuacionTotal += PUNTUACION_ALERTA.get(token);
+                        palabrasDetectadas.add(token);
                     }
                 }
             }
