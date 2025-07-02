@@ -22,12 +22,20 @@ public class SpellCheckService {
     public void init() {
         if (langTool == null) {
             try {
-                System.out.println("Iniciando SpellCheckService con LanguageTool y Diccionario Personalizado...");
+                System.out.println("Iniciando SpellCheckService con Diccionario Personalizado Extendido...");
                 this.langTool = new JLanguageTool(new Spanish());
 
-                // --- CORRECCIÓN DEFINITIVA ---
-                // Se añaden "info" y "wst" a la lista de palabras que la IA debe ignorar.
-                List<String> palabrasDeNegocio = Arrays.asList("preaprobado", "credito", "whatsapp", "info", "wst");
+                // --- DICCIONARIO PERSONALIZADO EXTENDIDO ---
+                // Se añaden todas las palabras de negocio. Se convierten a minúsculas
+                // para asegurar que la IA las reconozca sin importar el caso (mayúscula/minúscula).
+                List<String> palabrasDeNegocio = Arrays.asList(
+                    // Palabras originales
+                    "preaprobado", "credito", "whatsapp", "info", "wst",
+                    // Nueva lista de palabras (ya en minúsculas)
+                    "frscompania", "inf", "t&c", "sobrecostos", "dto", "dcto", "sured",
+                    "billetecla", "dinerbacano", "morlong", "platanow", "platax",
+                    "transfelicia", "htt", "morloan", "tyc", "fintech", "dctos"
+                );
                 
                 // Se busca la regla de ortografía y se le añaden nuestras palabras a la lista de excepciones.
                 for (Rule rule : langTool.getAllRules()) {
@@ -58,10 +66,6 @@ public class SpellCheckService {
         return instance;
     }
 
-    /**
-     * Revisa un texto y devuelve un mapa de palabras erróneas con sus sugerencias,
-     * ignorando errores de tildes y fragmentos con números.
-     */
     public Map<String, String> findMisspelledWordsWithSuggestions(String text) {
         try {
             List<RuleMatch> matches = langTool.check(text);
@@ -71,12 +75,10 @@ public class SpellCheckService {
                     .filter(match -> !match.getSuggestedReplacements().isEmpty())
                     .filter(match -> {
                         String originalWord = text.substring(match.getFromPos(), match.getToPos());
-                        // Ignorar cualquier "palabra" que contenga números o sea muy corta.
                         if (originalWord.matches(".*\\d.*") || originalWord.length() <= 2) {
                             return false;
                         }
                         String suggestedWord = match.getSuggestedReplacements().get(0);
-                        // Ignorar si la sugerencia es solo la misma palabra con tilde.
                         return !normalizeText(originalWord).equals(normalizeText(suggestedWord));
                     })
                     .collect(Collectors.toMap(
