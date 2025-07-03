@@ -1,16 +1,18 @@
 package com.ia.mensajes.agentemensajesia.resources;
 
-import com.ia.mensajes.agentemensajesia.ia.ClasificadorMensajes;
-import com.ia.mensajes.agentemensajesia.model.AsesorStats; // <-- Importar el nuevo DTO
+import com.ia.mensajes.agentemensajesia.model.AsesorStats;
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
+import com.ia.mensajes.agentemensajesia.model.FeedbackRequest;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.model.PaginatedResponse;
 import com.ia.mensajes.agentemensajesia.services.ExcelExportService;
 import com.ia.mensajes.agentemensajesia.services.MensajeService;
 import com.ia.mensajes.agentemensajesia.services.SentimentAnalysisService;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 
@@ -25,6 +27,27 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Path("/mensajes")
 public class MensajeResource {
+    
+    // ... (código existente de la clase)
+
+    // --- NUEVO ENDPOINT PARA FEEDBACK ---
+    @POST
+    @Path("/{id}/feedback")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response registrarFeedback(@PathParam("id") Long id, FeedbackRequest feedbackRequest, @Context SecurityContext securityContext) {
+        try {
+            String username = securityContext.getUserPrincipal().getName();
+            mensajeService.registrarFeedback(id, feedbackRequest, username);
+            return Response.ok().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                           .entity(Map.of("error", "Error interno al registrar el feedback: " + e.getMessage()))
+                           .build();
+        }
+    }
+
 
     public static class JobStatus {
         private String status;
@@ -71,7 +94,6 @@ public class MensajeResource {
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     public Response probarSentimiento(String texto) {
-        ClasificadorMensajes.getInstance().waitForReady();
         if (texto == null || texto.trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST).entity(Map.of("error", "Se requiere un texto para analizar.")).build();
         }
@@ -117,9 +139,6 @@ public class MensajeResource {
         }
     }
 
-    /**
-     * NUEVO ENDPOINT: Devuelve las estadísticas de mensajes por asesor.
-     */
     @GET
     @Path("/stats/por-asesor")
     @Produces(MediaType.APPLICATION_JSON)

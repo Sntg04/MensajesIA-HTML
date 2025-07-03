@@ -1,79 +1,156 @@
 package com.ia.mensajes.agentemensajesia.model;
 
 import jakarta.persistence.*;
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
 
 @Entity
-@Table(name = "mensajes")
-public class Mensaje implements Serializable {
+public class Mensaje {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    @Column(name = "aplicacion", length = 100)
     private String aplicacion;
-
-    @Column(name = "id_cliente", length = 100)
     private String idCliente;
-
-    @Column(name = "nombre_asesor", length = 150)
-    private String nombreAsesor;
-
-    @Column(name = "fecha_hora_mensaje")
-    private LocalDateTime fechaHoraMensaje;
-    
-    @Column(name = "texto_mensaje", columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String texto;
-
-    @Column(name = "clasificacion", length = 50)
+    private String nombreAsesor;
+    private LocalDateTime fechaHoraMensaje;
     private String clasificacion;
-
-    @Column(name = "observacion", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String observacion;
-
-    // --- Campo sin sus Getters y Setters ---
-    @Column(name = "confianza")
-    private double confianza;
-
+    private String lote;
     @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "fecha_procesamiento", nullable = false)
     private Date fechaProcesamiento;
 
-    @Column(name = "lote", length = 100)
-    private String lote;
+    // --- NUEVOS CAMPOS PARA FEEDBACK DE CALIDAD ---
+    @Column(name = "feedback_estado")
+    private String feedbackEstado; // Almacenará "CORRECTA" o "INCORRECTA"
 
-    // --- Getters y Setters ---
+    @Column(name = "feedback_motivo", length = 500)
+    private String feedbackMotivo; // Almacenará la razón del analista
 
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-    public String getAplicacion() { return aplicacion; }
-    public void setAplicacion(String aplicacion) { this.aplicacion = aplicacion; }
-    public String getIdCliente() { return idCliente; }
-    public void setIdCliente(String idCliente) { this.idCliente = idCliente; }
-    public String getNombreAsesor() { return nombreAsesor; }
-    public void setNombreAsesor(String nombreAsesor) { this.nombreAsesor = nombreAsesor; }
-    public LocalDateTime getFechaHoraMensaje() { return fechaHoraMensaje; }
-    public void setFechaHoraMensaje(LocalDateTime fechaHoraMensaje) { this.fechaHoraMensaje = fechaHoraMensaje; }
-    public String getTexto() { return texto; }
-    public void setTexto(String texto) { this.texto = texto; }
-    public String getClasificacion() { return clasificacion; }
-    public void setClasificacion(String clasificacion) { this.clasificacion = clasificacion; }
-    public String getObservacion() { return observacion; }
-    public void setObservacion(String observacion) { this.observacion = observacion; }
-    public Date getFechaProcesamiento() { return fechaProcesamiento; }
-    public void setFechaProcesamiento(Date fechaProcesamiento) { this.fechaProcesamiento = fechaProcesamiento; }
-    public String getLote() { return lote; }
-    public void setLote(String lote) { this.lote = lote; }
-    
-    // --- MÉTODOS AÑADIDOS QUE SOLUCIONAN EL ERROR ---
-    public double getConfianza() {
-        return confianza;
+    @Column(name = "feedback_usuario")
+    private String feedbackUsuario; // Almacenará el username del analista que dio el feedback
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "feedback_fecha")
+    private Date feedbackFecha; // Almacenará la fecha y hora del feedback
+
+    // Getters y Setters para todos los campos
+
+    public Long getId() {
+        return id;
     }
 
-    public void setConfianza(double confianza) {
-        this.confianza = confianza;
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getAplicacion() {
+        return aplicacion;
+    }
+
+    public void setAplicacion(String aplicacion) {
+        this.aplicacion = aplicacion;
+    }
+
+    public String getIdCliente() {
+        return idCliente;
+    }
+
+    public void setIdCliente(String idCliente) {
+        this.idCliente = idCliente;
+    }
+
+    public String getTexto() {
+        return texto;
+    }
+
+    public void setTexto(String texto) {
+        this.texto = texto;
+    }
+
+    public String getNombreAsesor() {
+        return nombreAsesor;
+    }
+
+    public void setNombreAsesor(String nombreAsesor) {
+        this.nombreAsesor = nombreAsesor;
+    }
+
+    public LocalDateTime getFechaHoraMensaje() {
+        return fechaHoraMensaje;
+    }
+
+    public void setFechaHoraMensaje(LocalDateTime fechaHoraMensaje) {
+        this.fechaHoraMensaje = fechaHoraMensaje;
+    }
+
+    public String getClasificacion() {
+        return clasificacion;
+    }
+
+    public void setClasificacion(String clasificacion) {
+        this.clasificacion = clasificacion;
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
+    }
+    
+    public String getLote() {
+        return lote;
+    }
+
+    public void setLote(String lote) {
+        this.lote = lote;
+    }
+
+    public Date getFechaProcesamiento() {
+        return fechaProcesamiento;
+    }
+
+    public void setFechaProcesamiento(Date fechaProcesamiento) {
+        this.fechaProcesamiento = fechaProcesamiento;
+    }
+
+    // --- GETTERS Y SETTERS PARA LOS NUEVOS CAMPOS ---
+
+    public String getFeedbackEstado() {
+        return feedbackEstado;
+    }
+
+    public void setFeedbackEstado(String feedbackEstado) {
+        this.feedbackEstado = feedbackEstado;
+    }
+
+    public String getFeedbackMotivo() {
+        return feedbackMotivo;
+    }
+
+    public void setFeedbackMotivo(String feedbackMotivo) {
+        this.feedbackMotivo = feedbackMotivo;
+    }
+
+    public String getFeedbackUsuario() {
+        return feedbackUsuario;
+    }
+
+    public void setFeedbackUsuario(String feedbackUsuario) {
+        this.feedbackUsuario = feedbackUsuario;
+    }
+
+    public Date getFeedbackFecha() {
+        return feedbackFecha;
+    }
+
+    public void setFeedbackFecha(Date feedbackFecha) {
+        this.feedbackFecha = feedbackFecha;
     }
 }

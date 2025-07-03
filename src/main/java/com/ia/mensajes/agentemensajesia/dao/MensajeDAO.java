@@ -1,6 +1,6 @@
 package com.ia.mensajes.agentemensajesia.dao;
 
-import com.ia.mensajes.agentemensajesia.model.AsesorStats; // Importar AsesorStats
+import com.ia.mensajes.agentemensajesia.model.AsesorStats;
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.util.JPAUtil;
@@ -8,7 +8,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class MensajeDAO {
 
@@ -35,6 +34,38 @@ public class MensajeDAO {
             }
         }
     }
+    
+    // --- NUEVO MÉTODO ---
+    public Mensaje buscarPorId(Long id) {
+        EntityManager em = getEntityManager();
+        try {
+            return em.find(Mensaje.class, id);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+    
+    // --- NUEVO MÉTODO ---
+    public Mensaje actualizar(Mensaje mensaje) {
+        EntityManager em = getEntityManager();
+        try {
+            em.getTransaction().begin();
+            Mensaje mensajeActualizado = em.merge(mensaje);
+            em.getTransaction().commit();
+            return mensajeActualizado;
+        } catch (Exception e) {
+            if (em.getTransaction() != null && em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw new RuntimeException("Error al actualizar el mensaje", e);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
 
     public List<Mensaje> buscarTodos() {
         EntityManager em = getEntityManager();
@@ -49,9 +80,7 @@ public class MensajeDAO {
         EntityManager em = getEntityManager();
         try {
             Long total = em.createQuery("SELECT count(m) FROM Mensaje m", Long.class).getSingleResult();
-            Double spamAvg = em.createQuery("SELECT avg(m.confianza) FROM Mensaje m WHERE m.clasificacion = 'Alerta'", Double.class).getSingleResult();
-            Double noSpamAvg = em.createQuery("SELECT avg(m.confianza) FROM Mensaje m WHERE m.clasificacion = 'Bueno'", Double.class).getSingleResult();
-            return new EstadisticaMensaje(total != null ? total : 0L, spamAvg != null ? spamAvg : 0.0, noSpamAvg != null ? noSpamAvg : 0.0);
+            return new EstadisticaMensaje(total != null ? total : 0L, 0.0, 0.0);
         } catch (NoResultException e) {
             return new EstadisticaMensaje(0L, 0.0, 0.0);
         } finally {
@@ -146,10 +175,7 @@ public class MensajeDAO {
             if (em != null) em.close();
         }
     }
-
-    /**
-     * MÉTODO ACTUALIZADO: Cuenta mensajes totales, buenos y alertas por cada asesor.
-     */
+    
     public List<Object[]> contarMensajesPorAsesor() {
         EntityManager em = getEntityManager();
         try {

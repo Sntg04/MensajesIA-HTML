@@ -30,8 +30,16 @@ function setupUI() {
 }
 
 function setupEventListeners() {
-    document.querySelector('.sidebar-nav').addEventListener('click', e => { if (e.target.matches('.nav-link')) { e.preventDefault(); switchView(e.target.dataset.target); } });
-    document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); window.location.href = 'index.html'; });
+    document.querySelector('.sidebar-nav').addEventListener('click', e => {
+        if (e.target.matches('.nav-link')) {
+            e.preventDefault();
+            switchView(e.target.dataset.target);
+        }
+    });
+    document.getElementById('logoutButton').addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    });
     document.getElementById('sidebar-toggle').addEventListener('click', handleSidebarToggle);
     document.getElementById('export-excel-btn').addEventListener('click', exportarMensajes);
     document.getElementById('show-create-user-modal').addEventListener('click', () => showUserModal());
@@ -41,6 +49,8 @@ function setupEventListeners() {
     document.getElementById('uploadForm').addEventListener('submit', handleFileUpload);
     document.getElementById('pagination-container').addEventListener('click', handlePaginationClick);
     document.getElementById('asesor-filter').addEventListener('change', handleAsesorFilterChange);
+    // --- NUEVO EVENT LISTENER ---
+    document.getElementById('messageList').addEventListener('click', handleFeedbackClick);
 }
 
 function handleSidebarToggle() {
@@ -72,17 +82,18 @@ function switchView(targetId) {
 }
 
 async function fetchAPI(url, options = {}) {
-    const defaultHeaders = { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` };
+    const defaultHeaders = {'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`};
     if (!(options.body instanceof FormData)) {
         defaultHeaders['Content-Type'] = 'application/json';
     }
-    const config = { ...options, headers: { ...defaultHeaders, ...options.headers } };
+    const config = {...options, headers: {...defaultHeaders, ...options.headers}};
     const response = await fetch(url, config);
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error del servidor sin detalles.' }));
+        const errorData = await response.json().catch(() => ({error: 'Error del servidor sin detalles.'}));
         throw new Error(errorData.error || `Error HTTP ${response.status}`);
     }
-    if (response.status === 204 || response.headers.get("content-length") === "0") return { success: true };
+    if (response.status === 204 || response.headers.get("content-length") === "0")
+        return {success: true};
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
         return response.json();
@@ -90,7 +101,7 @@ async function fetchAPI(url, options = {}) {
     return response.blob();
 }
 
-// --- SECCIÓN: GESTIÓN DE USUARIOS (Sin cambios) ---
+// --- SECCIÓN: GESTIÓN DE USUARIOS ---
 function showUserModal(user = null) {
     const form = document.getElementById('user-form');
     form.reset();
@@ -105,19 +116,25 @@ function showUserModal(user = null) {
     document.getElementById('username').disabled = isEditing;
     document.getElementById('user-modal').style.display = 'flex';
 }
-function hideUserModal() { document.getElementById('user-modal').style.display = 'none'; }
+function hideUserModal() {
+    document.getElementById('user-modal').style.display = 'none';
+}
 async function handleUserFormSubmit(event) {
     event.preventDefault();
     const id = document.getElementById('user-id').value;
     const isEditing = !!id;
     const password = document.getElementById('password').value;
-    const userData = { nombreCompleto: document.getElementById('nombreCompleto').value, rol: document.getElementById('rol').value };
-    if (!isEditing) { userData.username = document.getElementById('username').value; }
-    if (password) { userData.passwordHash = password; }
+    const userData = {nombreCompleto: document.getElementById('nombreCompleto').value, rol: document.getElementById('rol').value};
+    if (!isEditing) {
+        userData.username = document.getElementById('username').value;
+    }
+    if (password) {
+        userData.passwordHash = password;
+    }
     const url = isEditing ? `/api/usuarios/${id}` : '/api/usuarios';
     const method = isEditing ? 'PUT' : 'POST';
     try {
-        await fetchAPI(url, { method, body: JSON.stringify(userData) });
+        await fetchAPI(url, {method, body: JSON.stringify(userData)});
         hideUserModal();
         cargarUsuarios();
     } catch (error) {
@@ -126,24 +143,38 @@ async function handleUserFormSubmit(event) {
 }
 async function handleUserTableActions(event) {
     const button = event.target.closest('button.btn-action');
-    if (!button) return;
+    if (!button)
+        return;
     const userId = button.dataset.id;
     if (button.classList.contains('btn-edit')) {
-        try { const user = await fetchAPI(`/api/usuarios/${userId}`); if (user) showUserModal(user); }
-        catch (error) { alert(`Error al cargar datos del usuario: ${error.message}`); }
+        try {
+            const user = await fetchAPI(`/api/usuarios/${userId}`);
+            if (user)
+                showUserModal(user);
+        } catch (error) {
+            alert(`Error al cargar datos del usuario: ${error.message}`);
+        }
         return;
     }
     if (button.classList.contains('btn-deactivate')) {
         if (confirm('¿Seguro que quieres DESACTIVAR este usuario?')) {
-            try { await fetchAPI(`/api/usuarios/${userId}/desactivar`, { method: 'DELETE' }); cargarUsuarios(); }
-            catch (error) { alert(`Error: ${error.message}`); }
+            try {
+                await fetchAPI(`/api/usuarios/${userId}/desactivar`, {method: 'DELETE'});
+                cargarUsuarios();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
         }
         return;
     }
     if (button.classList.contains('btn-activate')) {
         if (confirm('¿Seguro que quieres ACTIVAR este usuario?')) {
-            try { await fetchAPI(`/api/usuarios/${userId}`, { method: 'PUT', body: JSON.stringify({ activo: true }) }); cargarUsuarios(); }
-            catch (error) { alert(`Error: ${error.message}`); }
+            try {
+                await fetchAPI(`/api/usuarios/${userId}`, {method: 'PUT', body: JSON.stringify({activo: true})});
+                cargarUsuarios();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
         }
     }
 }
@@ -166,7 +197,6 @@ async function cargarUsuarios() {
     }
 }
 
-
 // --- SECCIÓN: GESTIÓN DE MENSAJES ---
 
 async function cargarFiltroAsesores() {
@@ -187,7 +217,7 @@ async function cargarFiltroAsesores() {
 
 function handleAsesorFilterChange(event) {
     currentAsesorFilter = event.target.value;
-    currentLoteId = null; 
+    currentLoteId = null;
     localStorage.removeItem('currentLoteId');
     cargarMensajes(0);
 }
@@ -195,8 +225,8 @@ function handleAsesorFilterChange(event) {
 async function cargarMensajes(page = 0) {
     currentPage = page;
     const messageList = document.getElementById('messageList');
-    messageList.innerHTML = `<tr><td colspan="7">Cargando página ${page + 1}...</td></tr>`;
-    const params = new URLSearchParams({ page, size: 10 });
+    messageList.innerHTML = `<tr><td colspan="8">Cargando página ${page + 1}...</td></tr>`;
+    const params = new URLSearchParams({page, size: 10});
     let url;
     if (currentLoteId) {
         url = `/api/mensajes/lote/${currentLoteId}?${params.toString()}`;
@@ -212,26 +242,75 @@ async function cargarMensajes(page = 0) {
         messageList.innerHTML = '';
         if (!mensajes || mensajes.length === 0) {
             let emptyMessage = 'No hay mensajes. Sube un archivo.';
-            if (currentLoteId) emptyMessage = `Mostrando solo mensajes del último lote.`;
-            if (currentAsesorFilter) emptyMessage = `No se encontraron mensajes para el asesor: ${currentAsesorFilter}.`;
-            messageList.innerHTML = `<tr><td colspan="7">${emptyMessage}</td></tr>`;
+            if (currentLoteId)
+                emptyMessage = `Mostrando solo mensajes del último lote.`;
+            if (currentAsesorFilter)
+                emptyMessage = `No se encontraron mensajes para el asesor: ${currentAsesorFilter}.`;
+            messageList.innerHTML = `<tr><td colspan="8">${emptyMessage}</td></tr>`;
             renderizarPaginacion(0, 0);
             return;
         }
         mensajes.forEach(m => {
-            let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' }) : 'N/A';
-            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td><pre>${m.observacion || 'N/A'}</pre></td><td>${fechaMensaje}</td></tr>`;
+            let fechaMensaje = m.fechaHoraMensaje ? new Date(m.fechaHoraMensaje).toLocaleString('es-ES', {dateStyle: 'short', timeStyle: 'medium'}) : 'N/A';
+            let feedbackHtml = '';
+            if (m.clasificacion === 'Alerta') {
+                if (m.feedbackEstado) { // Si ya tiene un estado, lo mostramos
+                    feedbackHtml = `<span class="feedback-revisado">${m.feedbackEstado}</span>`;
+                } else { // Si no, mostramos los botones
+                    feedbackHtml = `<div class="feedback-actions"><button class="btn-feedback btn-correcta" data-id="${m.id}" title="Marcar como alerta correcta">✔</button><button class="btn-feedback btn-incorrecta" data-id="${m.id}" title="Marcar como alerta incorrecta">✖</button></div>`;
+                }
+            } else {
+                feedbackHtml = '<span>N/A</span>';
+            }
+            messageList.innerHTML += `<tr class="${m.clasificacion === 'Alerta' ? 'row-alert' : ''}"><td>${m.id}</td><td>${m.nombreAsesor || 'N/A'}</td><td>${m.aplicacion || 'N/A'}</td><td>${m.texto}</td><td>${m.clasificacion}</td><td><pre>${m.observacion || 'N/A'}</pre></td><td>${fechaMensaje}</td><td>${feedbackHtml}</td></tr>`;
         });
         renderizarPaginacion(paginatedData.totalPages, paginatedData.currentPage);
     } catch (error) {
-        messageList.innerHTML = `<tr><td colspan="7" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`;
+        messageList.innerHTML = `<tr><td colspan="8" class="error-message">Error al cargar mensajes: ${error.message}</td></tr>`;
+}
+}
+
+// --- NUEVA FUNCIÓN PARA MANEJAR EL FEEDBACK ---
+async function handleFeedbackClick(event) {
+    const button = event.target.closest('.btn-feedback');
+    if (!button)
+        return;
+
+    const messageId = button.dataset.id;
+    const esCorrecta = button.classList.contains('btn-correcta');
+    let motivo = '';
+
+    if (!esCorrecta) {
+        motivo = prompt('Por favor, describe brevemente por qué la alerta es incorrecta:');
+        if (motivo === null || motivo.trim() === '') {
+            return;
+        }
+    }
+
+    const feedbackData = {
+        estado: esCorrecta ? 'CORRECTA' : 'INCORRECTA',
+        motivo: motivo
+    };
+
+    try {
+        await fetchAPI(`/api/mensajes/${messageId}/feedback`, {
+            method: 'POST',
+            body: JSON.stringify(feedbackData)
+        });
+
+        const feedbackContainer = button.parentElement;
+        feedbackContainer.innerHTML = `<span class="feedback-revisado">${feedbackData.estado}</span>`;
+
+    } catch (error) {
+        alert(`Error al enviar el feedback: ${error.message}`);
     }
 }
 
 function renderizarPaginacion(totalPages, currentPage) {
     const container = document.getElementById('pagination-container');
     container.innerHTML = '';
-    if (totalPages <= 1) return;
+    if (totalPages <= 1)
+        return;
     const prevButton = document.createElement('button');
     prevButton.innerHTML = '&laquo;';
     prevButton.title = 'Página Anterior';
@@ -252,7 +331,8 @@ function renderizarPaginacion(totalPages, currentPage) {
 
 function handlePaginationClick(event) {
     const button = event.target.closest('button');
-    if (!button || button.disabled) return;
+    if (!button || button.disabled)
+        return;
     const page = parseInt(button.dataset.page, 10);
     if (!isNaN(page)) {
         cargarMensajes(page);
@@ -295,7 +375,7 @@ async function cargarEstadisticas() {
 
 async function cargarEstadisticasAsesor() {
     const statsList = document.getElementById('asesor-stats-list');
-    statsList.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>'; // Aumentado a 4 columnas
+    statsList.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>';
     try {
         const stats = await fetchAPI('/api/mensajes/stats/por-asesor');
         statsList.innerHTML = '';
@@ -304,12 +384,7 @@ async function cargarEstadisticasAsesor() {
             return;
         }
         stats.forEach(s => {
-            statsList.innerHTML += `<tr>
-                <td>${s.nombreAsesor || 'Sin Asignar'}</td>
-                <td>${s.totalMensajes}</td>
-                <td class="cell-bueno">${s.mensajesBuenos}</td>
-                <td class="cell-alerta">${s.mensajesAlertas}</td>
-            </tr>`;
+            statsList.innerHTML += `<tr><td>${s.nombreAsesor || 'Sin Asignar'}</td><td>${s.totalMensajes}</td><td class="cell-bueno">${s.mensajesBuenos}</td><td class="cell-alerta">${s.mensajesAlertas}</td></tr>`;
         });
     } catch (error) {
         statsList.innerHTML = `<tr><td colspan="4" class="error-message">Error al cargar estadísticas por asesor.</td></tr>`;
@@ -332,7 +407,7 @@ async function handleFileUpload(event) {
     progressContainer.style.display = 'block';
     submitButton.disabled = true;
     try {
-        const result = await fetchAPI('/api/mensajes/upload', { method: 'POST', body: formData });
+        const result = await fetchAPI('/api/mensajes/upload', {method: 'POST', body: formData});
         uploadMessage.textContent = `${result.mensaje} Verificando estado...`;
         pollLoteStatus(result.loteId);
     } catch (error) {

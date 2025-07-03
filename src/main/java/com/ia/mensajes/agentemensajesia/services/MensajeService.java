@@ -5,6 +5,7 @@ import com.ia.mensajes.agentemensajesia.ia.ClasificadorMensajes;
 import com.ia.mensajes.agentemensajesia.ia.ResultadoClasificacion;
 import com.ia.mensajes.agentemensajesia.model.AsesorStats;
 import com.ia.mensajes.agentemensajesia.model.EstadisticaMensaje;
+import com.ia.mensajes.agentemensajesia.model.FeedbackRequest;
 import com.ia.mensajes.agentemensajesia.model.Mensaje;
 import com.ia.mensajes.agentemensajesia.model.PaginatedResponse;
 import com.ia.mensajes.agentemensajesia.resources.MensajeResource;
@@ -24,6 +25,22 @@ import java.util.stream.Collectors;
 public class MensajeService {
 
     private final MensajeDAO mensajeDAO = new MensajeDAO();
+
+    // ... (resto de la clase sin cambios)
+
+    // --- NUEVO MÉTODO ---
+    public void registrarFeedback(Long mensajeId, FeedbackRequest feedbackRequest, String username) {
+        Mensaje mensaje = mensajeDAO.buscarPorId(mensajeId);
+        if (mensaje != null) {
+            mensaje.setFeedbackEstado(feedbackRequest.getEstado());
+            mensaje.setFeedbackMotivo(feedbackRequest.getMotivo());
+            mensaje.setFeedbackUsuario(username);
+            mensaje.setFeedbackFecha(new Date());
+            mensajeDAO.actualizar(mensaje);
+        } else {
+            throw new RuntimeException("No se encontró el mensaje con ID: " + mensajeId);
+        }
+    }
 
     public void procesarYGuardarMensajesDesdeExcel(InputStream inputStream, String loteId) throws Exception {
         
@@ -46,9 +63,6 @@ public class MensajeService {
 
         MensajeResource.jobStatuses.get(loteId).setStatus("PROCESANDO");
 
-        // --- CORRECCIÓN DEFINITIVA: Se cambia parallelStream() por stream() ---
-        // Esto asegura que los mensajes se procesen uno por uno, evitando conflictos
-        // en la librería de IA, que no es segura para usarse en paralelo.
         List<Mensaje> mensajesProcesados = rows.stream()
             .map(row -> {
                 String textoMensaje = getCellValueAsString(row.getCell(7), formatter);
